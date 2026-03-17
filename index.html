@@ -248,6 +248,18 @@ function getRows(year,mode){
   return MONTHS.map(m=>data.find(d=>d.year===year&&d.month===m&&!!d.isProj===isProj)||null);
 }
 
+// Single source of truth for totals — used by BOTH metric cards and table footers
+function calcTotals(year,mode){
+  const rows=getRows(year,mode).filter(Boolean);
+  const sec=rows.reduce((a,r)=>a+(r.securitas||0),0);
+  const pro=rows.reduce((a,r)=>a+(r.protos||0),0);
+  const e2e=rows.reduce((a,r)=>a+(r.end2end||0),0);
+  const proj=rows.reduce((a,r)=>a+(r.projection||0),0);
+  const inc=rows.reduce((a,r)=>a+(r.incidents||0),0);
+  const ir=rows.length?rows.reduce((a,r)=>a+(r.incRate||0),0)/rows.length:0;
+  return{sec,pro,e2e,proj,tot:sec+pro+e2e,inc,ir:ir.toFixed(2),rows};
+}
+
 function fmt(n){return"$"+Math.round(n||0).toLocaleString();}
 function fmtK(n){return"$"+((n||0)/1000).toFixed(1)+"k";}
 
@@ -276,23 +288,14 @@ function renderProjNote(){
 }
 
 function renderMetrics(){
-  const rows=getRows(activeYear,activeMode).filter(Boolean);
-  const totSec=rows.reduce((a,r)=>a+(r.securitas||0),0);
-  const totPro=rows.reduce((a,r)=>a+(r.protos||0),0);
-  const totE2e=rows.reduce((a,r)=>a+(r.end2end||0),0);
-  const totProj=rows.reduce((a,r)=>a+(r.projection||0),0);
-  const tot=totSec+totPro+totE2e;
-  const avgIR=rows.length?(rows.reduce((a,r)=>a+(r.incRate||0),0)/rows.length).toFixed(2):0;
-  const totInc=rows.reduce((a,r)=>a+(r.incidents||0),0);
-
-  // 2024 is Securitas-only so total = securitas spend only
-  const displayTot = activeYear===2024 ? totSec : tot;
-  let cards=[["Total spend",fmtK(displayTot),C.tot],["Securitas",fmtK(totSec),C.sec]];
-  if(activeYear>=2025&&activeMode==="actual"){
-    cards.push(["Protos",fmtK(totPro),C.pro],["End2End",fmtK(totE2e),C.e2e]);
-  }
-  if(activeMode==="proj"&&totProj>0)cards.push(["Projected total",fmtK(totProj),C.proj]);
-  cards.push(["Avg inc. rate",avgIR+"%","var(--text)"],["Total incidents",totInc,"var(--text)"]);
+  const {sec,pro,e2e,proj,tot,inc,ir}=calcTotals(activeYear,activeMode);
+  const displayTot=activeYear===2024?sec:tot;
+  let cards=[["Total spend",fmtK(displayTot),C.tot],["Securitas",fmtK(sec),C.sec]];
+  if(activeYear>=2025&&activeMode==="actual"){cards.push(["Protos",fmtK(pro),C.pro],["End2End",fmtK(e2e),C.e2e]);}
+  if(activeMode==="proj"&&proj>0)cards.push(["Projected total",fmtK(proj),C.proj]);
+  cards.push(["Avg inc. rate",ir+"%","var(--text)"],["Total incidents",inc,"var(--text)"]);
+  document.getElementById("metricsRow").innerHTML=cards.map(([l,v,c])=>`<div class="metric"><label>${l}</label><div class="val" style="color:${c}">${v}</div></div>`).join("");
+}
   document.getElementById("metricsRow").innerHTML=cards.map(([l,v,c])=>`<div class="metric"><label>${l}</label><div class="val" style="color:${c}">${v}</div></div>`).join("");
 }
 
@@ -379,6 +382,7 @@ function renderView(){
     },0);
 
   } else if(activeView==="table"){
+    const {sec,pro,e2e,proj,tot}=calcTotals(activeYear,activeMode);
     const cols=isProj
       ?`<th style="text-align:left">Month</th><th>Homes</th><th>Inc. rate</th><th>Incidents</th><th style="color:${C.sec}">2025 sec/home basis</th><th style="color:${C.proj}">2026 projection</th><th></th>`
       :`<th style="text-align:left">Month</th><th>Inc. rate</th><th>Incidents</th><th>Homes</th><th style="color:${C.sec}">Securitas</th>${!is2024?`<th style="color:${C.pro}">Protos</th><th style="color:${C.e2e}">End2End</th>`:""}<th>Total</th><th></th>`;
@@ -389,8 +393,8 @@ function renderView(){
       return`<tr><td>${MONTHS[i]}</td><td>${r.incRate||0}%</td><td>${r.incidents||0}</td><td>${(r.homes||0).toLocaleString()}</td><td style="color:${C.sec}">${fmt(r.securitas)}</td>${!is2024?`<td style="color:${C.pro}">${fmt(r.protos)}</td><td style="color:${C.e2e}">${fmt(r.end2end)}</td>`:""}<td style="font-weight:500">${fmt(tot)}</td><td><div class="row-actions"><button onclick="openEditForm('${key}')">✎</button></div></td></tr>`;
     }).join("");
     const footCols=isProj
-      ?`<td colspan="5">Total</td><td style="color:${C.proj}">${fmt(active.reduce((a,{r})=>a+(r.projection||0),0))}</td><td></td>`
-      :`<td colspan="4">Total</td><td style="color:${C.sec}">${fmt(active.reduce((a,{r})=>a+(r.securitas||0),0))}</td>${!is2024?`<td style="color:${C.pro}">${fmt(active.reduce((a,{r})=>a+(r.protos||0),0))}</td><td style="color:${C.e2e}">${fmt(active.reduce((a,{r})=>a+(r.end2end||0),0))}</td>`:""}<td style="color:${C.tot}">${fmt(active.reduce((a,{r})=>a+(r.securitas||0)+(r.protos||0)+(r.end2end||0),0))}</td><td></td>`;
+      ?`<td colspan="5">Total</td><td style="color:${C.proj}">${fmt(proj)}</td><td></td>`
+      :`<td colspan="4">Total</td><td style="color:${C.sec}">${fmt(sec)}</td>${!is2024?`<td style="color:${C.pro}">${fmt(pro)}</td><td style="color:${C.e2e}">${fmt(e2e)}</td>`:""}<td style="color:${C.tot}">${fmt(tot)}</td><td></td>`;
     el.innerHTML=`<div class="card" style="padding:0;overflow:hidden"><div style="overflow-x:auto"><table><thead><tr>${cols}</tr></thead><tbody>${bodyRows}</tbody><tfoot><tr>${footCols}</tr></tfoot></table></div></div>`;
   }
 }
