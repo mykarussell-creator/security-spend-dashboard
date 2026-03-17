@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Security Spend Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{
+  --bg:#f9f9f8;--surface:#fff;--surface2:#f1f0ec;
+  --border:rgba(0,0,0,0.1);--border2:rgba(0,0,0,0.2);
+  --text:#1a1a1a;--text2:#666;--text3:#999;
+  --blue:#378ADD;--green:#1D9E75;--orange:#D85A30;--purple:#7F77DD;--amber:#BA7517;
+  --r:10px;--rs:6px;
+}
+@media(prefers-color-scheme:dark){
+  :root{--bg:#1a1a18;--surface:#252523;--surface2:#2e2e2b;--border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.2);--text:#f0efe8;--text2:#aaa;--text3:#555;}
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;}
+header{background:var(--surface);border-bottom:0.5px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;flex-wrap:wrap;gap:8px;}
+header h1{font-size:16px;font-weight:500;}
+header p{font-size:12px;color:var(--text2);}
+.main{max-width:1100px;margin:0 auto;padding:20px 16px;}
+.btn{padding:6px 14px;border:0.5px solid var(--border2);border-radius:var(--rs);background:transparent;color:var(--text);cursor:pointer;font-size:13px;transition:background .15s;}
+.btn:hover{background:var(--surface2);}
+.btn.active{background:var(--surface);border-color:var(--blue);color:var(--blue);font-weight:500;}
+.btn.primary{background:var(--blue);color:#fff;border-color:var(--blue);}
+.btn.primary:hover{opacity:.9;}
+.btn.danger{color:#c0392b;border-color:rgba(192,57,43,.3);}
+.btn.danger:hover{background:rgba(192,57,43,.07);}
+.btn.amber{border-color:var(--amber);color:var(--amber);}
+.btn.amber.active{font-weight:500;}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px;}
+.metric{background:var(--surface2);border-radius:var(--rs);padding:12px 14px;}
+.metric label{font-size:11px;color:var(--text2);display:block;margin-bottom:4px;}
+.metric .val{font-size:20px;font-weight:500;}
+.card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:16px;}
+.card h2{font-size:13px;font-weight:500;color:var(--text2);margin-bottom:14px;}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;font-size:12px;color:var(--text2);}
+.legend span{display:flex;align-items:center;gap:5px;}
+.legend i{width:10px;height:10px;border-radius:2px;display:inline-block;flex-shrink:0;}
+.chart-wrap{position:relative;width:100%;height:240px;}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead tr{border-bottom:0.5px solid var(--border2);}
+th{padding:8px;font-weight:500;color:var(--text2);text-align:right;white-space:nowrap;}
+th:first-child{text-align:left;}
+td{padding:6px 8px;border-bottom:0.5px solid var(--border);text-align:right;}
+td:first-child{text-align:left;}
+tfoot td{font-weight:500;border-top:0.5px solid var(--border2);border-bottom:none;background:var(--surface2);}
+.note{font-size:12px;color:var(--text2);background:var(--surface2);border-radius:var(--rs);padding:10px 14px;margin-bottom:14px;border-left:3px solid var(--amber);}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;align-items:center;justify-content:center;}
+.overlay.open{display:flex;}
+.modal{background:var(--surface);border-radius:var(--r);padding:24px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;}
+.modal h2{font-size:16px;font-weight:500;margin-bottom:18px;}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.fi{display:flex;flex-direction:column;gap:4px;}
+.fi.full{grid-column:1/-1;}
+.fi.row{flex-direction:row;align-items:center;gap:8px;}
+label.lbl{font-size:12px;color:var(--text2);font-weight:500;}
+input,select{padding:7px 10px;border:0.5px solid var(--border2);border-radius:var(--rs);background:var(--bg);color:var(--text);font-size:13px;width:100%;}
+input:focus,select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(55,138,221,.15);}
+input[type=checkbox]{width:auto;}
+.factions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;}
+.row-actions button{border:none;background:transparent;cursor:pointer;color:var(--text3);font-size:13px;padding:2px 5px;border-radius:3px;}
+.row-actions button:hover{background:var(--surface2);color:var(--text);}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Security Spend Dashboard</h1>
+    <p>Securitas · Protos · End2End</p>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <button class="btn" onclick="openImport()">Import JSON</button>
+    <button class="btn" onclick="exportData()">Export</button>
+    <button class="btn danger" onclick="resetData()">Reset data</button>
+    <button class="btn primary" onclick="openAddForm()">+ Add entry</button>
+  </div>
+</header>
+
+<div class="main">
+  <div class="toolbar" id="yearTabs"></div>
+  <div id="noteArea"></div>
+  <div class="metrics" id="metricsRow"></div>
+  <div class="tabs" id="viewTabs"></div>
+  <div id="viewContent"></div>
+</div>
+
+<!-- Form modal -->
+<div class="overlay" id="formOverlay">
+  <div class="modal">
+    <h2 id="formTitle">Add entry</h2>
+    <div class="fg">
+      <div class="fi"><label class="lbl">Year</label><select id="fYear"><option>2024</option><option selected>2025</option><option>2026</option><option>2027</option></select></div>
+      <div class="fi"><label class="lbl">Month</label><select id="fMonth"><option>January</option><option>February</option><option>March</option><option>April</option><option>May</option><option>June</option><option>July</option><option>August</option><option>September</option><option>October</option><option>November</option><option>December</option></select></div>
+      <div class="fi"><label class="lbl">Incident rate (%)</label><input type="number" id="fIncRate" step="0.01" placeholder="e.g. 2.45"/></div>
+      <div class="fi"><label class="lbl">Incident count</label><input type="number" id="fIncidents" placeholder="e.g. 188"/></div>
+      <div class="fi"><label class="lbl">Number of homes</label><input type="number" id="fHomes" placeholder="e.g. 7822"/></div>
+      <div class="fi"><label class="lbl">Securitas spend ($)</label><input type="number" id="fSecuritas" step="0.01" placeholder="e.g. 107872.56"/></div>
+      <div class="fi"><label class="lbl">Protos spend ($)</label><input type="number" id="fProtos" step="0.01" placeholder="e.g. 2158.76"/></div>
+      <div class="fi"><label class="lbl">End2End spend ($)</label><input type="number" id="fEnd2End" step="0.01" placeholder="e.g. 3072.00"/></div>
+      <div class="fi full"><label class="lbl">Securitas projection ($) <span style="color:var(--amber);font-size:11px;">projection entries only</span></label><input type="number" id="fProjection" step="0.01" placeholder="e.g. 42695.47"/></div>
+      <div class="fi full row"><input type="checkbox" id="fIsProj"/><label class="lbl" for="fIsProj" style="cursor:pointer;">Mark as projection entry</label></div>
+    </div>
+    <div class="factions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn danger" id="deleteBtn" onclick="deleteEntry()" style="display:none">Delete</button>
+      <button class="btn primary" onclick="saveEntry()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import modal -->
+<div class="overlay" id="importOverlay">
+  <div class="modal">
+    <h2>Import data (JSON)</h2>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:10px;">Paste exported JSON to restore or merge data. Existing entries for the same year/month will be overwritten.</p>
+    <textarea id="importText" style="width:100%;height:120px;font-family:monospace;font-size:11px;padding:8px;border:0.5px solid var(--border2);border-radius:var(--rs);background:var(--bg);color:var(--text);resize:vertical;" placeholder='[{"year":2025,"month":"January",...}]'></textarea>
+    <div class="factions">
+      <button class="btn" onclick="closeImport()">Cancel</button>
+      <button class="btn primary" onclick="doImport()">Import</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const SHORT   = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const C = { sec:"#378ADD", pro:"#1D9E75", e2e:"#D85A30", tot:"#7F77DD", proj:"#BA7517" };
+const DATA_VERSION = 4;
+
+const SEED = [
+  // 2024 — Securitas only
+  {year:2024,month:"January",   incRate:0,incidents:0,homes:0,securitas:48967.16, protos:0,end2end:0,projection:0,isProj:false},
+  {year:2024,month:"February",  incRate:0,incidents:0,homes:0,securitas:55704.40, protos:0,end2end:0,projection:0,isProj:false},
+  {year:2024,month:"March",     incRate:0,incidents:0,homes:0,securitas:55157.12, protos:0,end2end:0,projection:0,isProj:false},
+  {year:2024,month:"April",     incRate:0,incidents:0,homes:0,securitas:53715.62, protos:0,end2end:0,projection:0,isProj:false},
+  {year:2024,month:"May",       incRate:0,incidents:0,homes:0,securitas:66039.93, protos:0,end2end:0,projection:0,isProj:false},
+  {year:2024,month:"June",      incRate:0,incidents:0,homes:0,securitas:120591.26,protos:0,end2end:0,projection:0,isProj:false},
+  {year:2024,month:"July",      incRate:0,incidents:0,homes:0,securitas:168878.22,protos:0,end2end:0,projection:0,isProj:false},
+  {year:2024,month:"August",    incRate:0,incidents:0,homes:0,securitas:149927.41,protos:0,end2end:0,projection:0,isProj:false},
+  {year:2024,month:"September", incRate:0,incidents:0,homes:0,securitas:130467.05,protos:0,end2end:0,projection:0,isProj:false},
+  {year:2024,month:"October",   incRate:0,incidents:0,homes:0,securitas:98989.15, protos:0,end2end:0,projection:0,isProj:false},
+  {year:2024,month:"November",  incRate:0,incidents:0,homes:0,securitas:102469.69,protos:0,end2end:0,projection:0,isProj:false},
+  {year:2024,month:"December",  incRate:0,incidents:0,homes:0,securitas:97312.61, protos:0,end2end:0,projection:0,isProj:false},
+  // 2025 — All vendors
+  {year:2025,month:"January",   incRate:2.25,incidents:176,homes:7822, securitas:107872.56,protos:2158.76, end2end:3072.00, projection:0,isProj:false},
+  {year:2025,month:"February",  incRate:2.49,incidents:208,homes:8353, securitas:138294.71,protos:3542.65, end2end:4991.25, projection:0,isProj:false},
+  {year:2025,month:"March",     incRate:2.38,incidents:201,homes:8445, securitas:144353.20,protos:3598.40, end2end:3110.00, projection:0,isProj:false},
+  {year:2025,month:"April",     incRate:2.45,incidents:189,homes:7714, securitas:116339.57,protos:4416.59, end2end:2189.00, projection:0,isProj:false},
+  {year:2025,month:"May",       incRate:2.42,incidents:157,homes:6488, securitas:108461.26,protos:2666.92, end2end:1161.00, projection:0,isProj:false},
+  {year:2025,month:"June",      incRate:3.31,incidents:187,homes:5650, securitas:112760.98,protos:4448.83, end2end:2341.00, projection:0,isProj:false},
+  {year:2025,month:"July",      incRate:3.83,incidents:182,homes:4752, securitas:108820.23,protos:4473.82, end2end:6160.88, projection:0,isProj:false},
+  {year:2025,month:"August",    incRate:4.40,incidents:188,homes:1944, securitas:90436.73, protos:5596.92, end2end:4537.92, projection:0,isProj:false},
+  {year:2025,month:"September", incRate:3.88,incidents:150,homes:1780, securitas:76404.73, protos:3623.14, end2end:1904.75, projection:0,isProj:false},
+  {year:2025,month:"October",   incRate:3.20,incidents:112,homes:1586, securitas:70881.94, protos:4646.27, end2end:6715.10, projection:0,isProj:false},
+  {year:2025,month:"November",  incRate:3.16,incidents:107,homes:1374, securitas:60852.06, protos:250.00,  end2end:2363.21, projection:0,isProj:false},
+  {year:2025,month:"December",  incRate:2.44,incidents:85, homes:1418, securitas:64929.61, protos:0,       end2end:2718.50, projection:0,isProj:false},
+  // 2026 actuals
+  {year:2026,month:"January",   incRate:3.06,incidents:107,homes:1455, securitas:51998.98, protos:0,       end2end:0,       projection:0,isProj:false},
+  {year:2026,month:"February",  incRate:2.81,incidents:106,homes:1596, securitas:53311.16, protos:2078.15, end2end:385.25,  projection:0,isProj:false},
+  // 2026 projections
+  {year:2026,month:"January",   incRate:2.25,incidents:176,homes:3096, securitas:107872.56,protos:0,end2end:0,projection:42695.47,  isProj:true},
+  {year:2026,month:"February",  incRate:2.49,incidents:208,homes:3489, securitas:138294.71,protos:0,end2end:0,projection:57762.04,  isProj:true},
+  {year:2026,month:"March",     incRate:2.38,incidents:201,homes:3958, securitas:144353.20,protos:0,end2end:0,projection:67652.38,  isProj:true},
+  {year:2026,month:"April",     incRate:2.45,incidents:189,homes:4576, securitas:116339.57,protos:0,end2end:0,projection:69010.91,  isProj:true},
+  {year:2026,month:"May",       incRate:2.42,incidents:157,homes:5011, securitas:108461.26,protos:0,end2end:0,projection:83775.06,  isProj:true},
+  {year:2026,month:"June",      incRate:3.31,incidents:187,homes:5490, securitas:112760.98,protos:0,end2end:0,projection:109576.54, isProj:true},
+  {year:2026,month:"July",      incRate:3.83,incidents:182,homes:6134, securitas:108820.23,protos:0,end2end:0,projection:140469.10, isProj:true},
+  {year:2026,month:"August",    incRate:4.40,incidents:188,homes:6661, securitas:90436.73, protos:0,end2end:0,projection:309876.06, isProj:true},
+  {year:2026,month:"September", incRate:3.88,incidents:150,homes:7256, securitas:76404.73, protos:0,end2end:0,projection:311456.58, isProj:true},
+  {year:2026,month:"October",   incRate:3.20,incidents:112,homes:7922, securitas:70881.94, protos:0,end2end:0,projection:354052.16, isProj:true},
+  {year:2026,month:"November",  incRate:3.16,incidents:107,homes:9121, securitas:60852.06, protos:0,end2end:0,projection:403953.16, isProj:true},
+  {year:2026,month:"December",  incRate:2.44,incidents:85, homes:10550,securitas:64929.61, protos:0,end2end:0,projection:483079.96, isProj:true},
+];
+
+var data = [], activeYear = 2025, activeMode = "actual", activeView = "overview", editingKey = null, charts = {};
+
+function loadData() {
+  var ver = parseInt(localStorage.getItem("secSpendVer") || "0");
+  if (ver < DATA_VERSION) {
+    var stored = localStorage.getItem("secSpendData");
+    var userAdded = [];
+    if (stored) {
+      try {
+        var old = JSON.parse(stored);
+        userAdded = old.filter(function(o) {
+          return !SEED.some(function(s) { return s.year===o.year && s.month===o.month && !!s.isProj===!!o.isProj; });
+        });
+      } catch(e) {}
+    }
+    data = SEED.map(function(s) { return Object.assign({}, s); }).concat(userAdded);
+    saveData();
+    localStorage.setItem("secSpendVer", String(DATA_VERSION));
+  } else {
+    var s = localStorage.getItem("secSpendData");
+    if (s) { try { data = JSON.parse(s); } catch(e) { data = SEED.map(function(s){return Object.assign({},s);}); } }
+    else { data = SEED.map(function(s){return Object.assign({},s);}); saveData(); }
+  }
+}
+
+function saveData() { localStorage.setItem("secSpendData", JSON.stringify(data)); }
+
+function resetData() {
+  if (!confirm("Reset all data to the original Google Sheets values? Any manually added entries will be lost.")) return;
+  localStorage.removeItem("secSpendData");
+  localStorage.removeItem("secSpendVer");
+  loadData();
+  renderAll();
+  alert("Data has been reset to original values.");
+}
+
+function getRows(year, mode) {
+  var isProj = mode === "proj";
+  return MONTHS.map(function(m) {
+    return data.find(function(d) { return d.year===year && d.month===m && !!d.isProj===isProj; }) || null;
+  });
+}
+
+function calcTotals(year, mode) {
+  var rows = getRows(year, mode).filter(Boolean);
+  var sec  = rows.reduce(function(a,r){return a+(r.securitas||0);},0);
+  var pro  = rows.reduce(function(a,r){return a+(r.protos||0);},0);
+  var e2e  = rows.reduce(function(a,r){return a+(r.end2end||0);},0);
+  var proj = rows.reduce(function(a,r){return a+(r.projection||0);},0);
+  var inc  = rows.reduce(function(a,r){return a+(r.incidents||0);},0);
+  var ir   = rows.length ? (rows.reduce(function(a,r){return a+(r.incRate||0);},0)/rows.length).toFixed(2) : "0.00";
+  return { sec:sec, pro:pro, e2e:e2e, proj:proj, tot:sec+pro+e2e, inc:inc, ir:ir, rows:rows };
+}
+
+function fmt(n)  { return "$" + Math.round(n||0).toLocaleString(); }
+function fmtK(n) { return "$" + ((n||0)/1000).toFixed(1) + "k"; }
+function getYears() { return Array.from(new Set(data.map(function(d){return d.year;}))).sort(); }
+
+function renderAll() { renderYearTabs(); renderNote(); renderMetrics(); renderViewTabs(); renderView(); }
+
+function renderYearTabs() {
+  var years = getYears();
+  if (years.indexOf(activeYear) < 0) activeYear = years[years.length-1] || 2025;
+  var hasProj = data.some(function(d){return d.year===activeYear && d.isProj;});
+  var html = years.map(function(y){
+    return '<button class="btn'+(y===activeYear?' active':'')+'" onclick="setYear('+y+')">'+y+'</button>';
+  }).join("");
+  if (hasProj) html += '<button class="btn amber'+(activeMode==="proj"?" active":"")+'" onclick="setMode(\'proj\')">2026 Projections</button>';
+  if (activeMode==="proj" && !hasProj) activeMode = "actual";
+  html += '<button class="btn" onclick="addYear()">+ Year</button>';
+  document.getElementById("yearTabs").innerHTML = html;
+}
+
+function renderNote() {
+  var el = document.getElementById("noteArea");
+  if (activeMode === "proj") {
+    el.innerHTML = '<div class="note">Showing <strong>2026 Securitas projections</strong> based on 2025 spend per home \xd7 forecasted inventory. Actual spend shown under 2026 tab.</div>';
+  } else if (activeYear === 2024) {
+    el.innerHTML = '<div class="note">2024 data contains Securitas spend only. Protos and End2End tracking began in 2025.</div>';
+  } else {
+    el.innerHTML = "";
+  }
+}
+
+function renderMetrics() {
+  var t = calcTotals(activeYear, activeMode);
+  var displayTot = activeYear===2024 ? t.sec : t.tot;
+  var cards = [["Total spend", fmtK(displayTot), C.tot], ["Securitas", fmtK(t.sec), C.sec]];
+  if (activeYear >= 2025 && activeMode === "actual") { cards.push(["Protos", fmtK(t.pro), C.pro], ["End2End", fmtK(t.e2e), C.e2e]); }
+  if (activeMode === "proj" && t.proj > 0) cards.push(["Projected total", fmtK(t.proj), C.proj]);
+  cards.push(["Avg inc. rate", t.ir+"%", "var(--text)"], ["Total incidents", t.inc, "var(--text)"]);
+  document.getElementById("metricsRow").innerHTML = cards.map(function(c){
+    return '<div class="metric"><label>'+c[0]+'</label><div class="val" style="color:'+c[2]+'">'+c[1]+'</div></div>';
+  }).join("");
+}
+
+function renderViewTabs() {
+  var views = activeMode==="proj" ? ["projections","table"] : ["overview","spend mix","per home","table"];
+  if (views.indexOf(activeView) < 0) activeView = views[0];
+  document.getElementById("viewTabs").innerHTML = views.map(function(v){
+    return '<button class="btn'+(v===activeView?" active":"")+'" onclick="setView(\''+v+'\')">'+v.charAt(0).toUpperCase()+v.slice(1)+'</button>';
+  }).join("");
+}
+
+function destroyCharts() { Object.keys(charts).forEach(function(k){try{charts[k].destroy();}catch(e){}}); charts={}; }
+
+function renderView() {
+  destroyCharts();
+  var el = document.getElementById("viewContent");
+  var rows = getRows(activeYear, activeMode);
+  var active = rows.map(function(r,i){return{r:r,i:i};}).filter(function(x){return x.r;});
+  var labels = active.map(function(x){return SHORT[x.i];});
+  var t = calcTotals(activeYear, activeMode);
+  var is2024 = activeYear===2024;
+  var isProj = activeMode==="proj";
+
+  if (activeView === "overview") {
+    var datasets = is2024
+      ? [{label:"Securitas", data:active.map(function(x){return x.r.securitas||0;}), backgroundColor:C.sec}]
+      : [
+          {label:"Securitas", data:active.map(function(x){return x.r.securitas||0;}), backgroundColor:C.sec},
+          {label:"Protos",    data:active.map(function(x){return x.r.protos||0;}),    backgroundColor:C.pro},
+          {label:"End2End",   data:active.map(function(x){return x.r.end2end||0;}),   backgroundColor:C.e2e}
+        ];
+    var legHtml = is2024
+      ? '<span><i style="background:'+C.sec+'"></i>Securitas</span>'
+      : '<span><i style="background:'+C.sec+'"></i>Securitas</span><span><i style="background:'+C.pro+'"></i>Protos</span><span><i style="background:'+C.e2e+'"></i>End2End</span>';
+    el.innerHTML =
+      '<div class="card"><h2>Monthly spend by vendor</h2><div class="legend">'+legHtml+'</div><div class="chart-wrap"><canvas id="cBar"></canvas></div></div>'+
+      '<div class="card"><h2>Incident rate trend (%)</h2><div class="chart-wrap" style="height:180px"><canvas id="cIr"></canvas></div></div>';
+    setTimeout(function(){
+      charts.bar = new Chart(document.getElementById("cBar"),{type:"bar",data:{labels:labels,datasets:datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{autoSkip:false,maxRotation:45}}}}});
+      if (active.some(function(x){return x.r.incRate>0;})) {
+        charts.ir = new Chart(document.getElementById("cIr"),{type:"line",data:{labels:labels,datasets:[{label:"Inc. Rate",data:active.map(function(x){return x.r.incRate||0;}),borderColor:C.e2e,backgroundColor:"transparent",tension:0.3,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:function(v){return v+"%";}}}}}});
+      } else {
+        document.getElementById("cIr").parentElement.innerHTML = '<p style="color:var(--text3);font-size:13px;padding:20px 0">No incident rate data for 2024.</p>';
+      }
+    }, 0);
+
+  } else if (activeView === "spend mix") {
+    var tot1 = t.tot || 1;
+    var bars = is2024
+      ? [["Securitas", t.sec, C.sec]]
+      : [["Securitas", t.sec, C.sec], ["Protos", t.pro, C.pro], ["End2End", t.e2e, C.e2e]];
+    var barsHtml = bars.map(function(b){
+      var p = Math.round(b[1]/tot1*100);
+      return '<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px"><span>'+b[0]+'</span><span style="color:var(--text2)">'+fmt(b[1])+' <span style="color:'+b[2]+';font-weight:500">('+p+'%)</span></span></div><div style="height:8px;border-radius:4px;background:var(--surface2);overflow:hidden"><div style="height:100%;width:'+p+'%;background:'+b[2]+';border-radius:4px"></div></div></div>';
+    }).join("");
+    el.innerHTML =
+      '<div class="card"><h2>Vendor spend breakdown</h2>'+barsHtml+'</div>'+
+      '<div class="card"><h2>Total monthly spend</h2><div class="chart-wrap"><canvas id="cTot"></canvas></div></div>';
+    setTimeout(function(){
+      charts.tot = new Chart(document.getElementById("cTot"),{type:"line",data:{labels:labels,datasets:[{label:"Total",data:active.map(function(x){return(x.r.securitas||0)+(x.r.protos||0)+(x.r.end2end||0);}),borderColor:C.tot,backgroundColor:"transparent",tension:0.3,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:function(v){return"$"+(v/1000).toFixed(0)+"k";}}}}}});
+    }, 0);
+
+  } else if (activeView === "per home") {
+    var sph = active.map(function(x){return x.r.homes>0?parseFloat((x.r.securitas/x.r.homes).toFixed(2)):0;});
+    var sphCards = active.map(function(x,idx){
+      return '<div style="background:var(--surface2);border-radius:6px;padding:10px 12px"><div style="font-size:11px;color:var(--text2)">'+SHORT[x.i]+'</div><div style="font-size:15px;font-weight:500">$'+sph[idx]+'</div><div style="font-size:11px;color:var(--text3)">'+(x.r.homes||0).toLocaleString()+' homes</div></div>';
+    }).join("");
+    el.innerHTML =
+      '<div class="card"><h2>Securitas spend per home</h2><div class="chart-wrap"><canvas id="cSph"></canvas></div></div>'+
+      '<div class="card" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;padding:12px">'+sphCards+'</div>';
+    setTimeout(function(){
+      charts.sph = new Chart(document.getElementById("cSph"),{type:"line",data:{labels:labels,datasets:[{label:"$/home",data:sph,borderColor:C.sec,backgroundColor:"transparent",tension:0.3,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:function(v){return"$"+v.toFixed(2);}}}}}});
+    }, 0);
+
+  } else if (activeView === "projections") {
+    var actual2026 = MONTHS.map(function(m){return data.find(function(d){return d.year===2026&&d.month===m&&!d.isProj;})||null;});
+    var projRows = active.map(function(x){
+      return '<tr><td>'+MONTHS[x.i]+'</td><td>'+(x.r.homes||0).toLocaleString()+'</td><td>'+(x.r.incRate||0)+'%</td><td>'+(x.r.incidents||0)+'</td><td style="color:'+C.sec+'">$'+(x.r.homes>0?(x.r.securitas/x.r.homes).toFixed(2):"-")+'</td><td style="color:'+C.proj+';font-weight:500">'+fmt(x.r.projection)+'</td></tr>';
+    }).join("");
+    el.innerHTML =
+      '<div class="card"><h2>Projected vs actual Securitas spend 2026</h2><div class="chart-wrap" style="height:260px"><canvas id="cProj"></canvas></div></div>'+
+      '<div class="card" style="overflow-x:auto;padding:0"><table><thead><tr><th style="text-align:left">Month</th><th>Homes</th><th>Inc. rate</th><th>Incidents</th><th style="color:'+C.sec+'">2025 sec/home</th><th style="color:'+C.proj+'">2026 projection</th></tr></thead><tbody>'+projRows+'</tbody><tfoot><tr><td colspan="5">Total projected</td><td style="color:'+C.proj+'">'+fmt(t.proj)+'</td></tr></tfoot></table></div>';
+    setTimeout(function(){
+      charts.proj = new Chart(document.getElementById("cProj"),{
+        type:"bar",
+        data:{labels:labels,datasets:[
+          {label:"2026 Projection",data:active.map(function(x){return x.r.projection||0;}),backgroundColor:C.proj+"99"},
+          {label:"2026 Actual",    data:active.map(function(x){var a=actual2026[x.i];return a?a.securitas:null;}),backgroundColor:C.sec}
+        ]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true}},scales:{x:{ticks:{autoSkip:false,maxRotation:45}},y:{ticks:{callback:function(v){return"$"+(v/1000).toFixed(0)+"k";}}}}}
+      });
+    }, 0);
+
+  } else if (activeView === "table") {
+    var colHead = isProj
+      ? '<th style="text-align:left">Month</th><th>Homes</th><th>Inc. rate</th><th>Incidents</th><th style="color:'+C.sec+'">2025 sec/home basis</th><th style="color:'+C.proj+'">2026 projection</th><th></th>'
+      : '<th style="text-align:left">Month</th><th>Inc. rate</th><th>Incidents</th><th>Homes</th><th style="color:'+C.sec+'">Securitas</th>'+(is2024?'':'<th style="color:'+C.pro+'">Protos</th><th style="color:'+C.e2e+'">End2End</th>')+'<th>Total</th><th></th>';
+    var bodyRows = active.map(function(x){
+      var r=x.r, i=x.i;
+      var key = r.year+"_"+r.month+"_"+(r.isProj?"proj":"actual");
+      var editBtn = '<div class="row-actions"><button onclick="openEditForm(\''+key+'\')">&#9998;</button></div>';
+      if (isProj) {
+        return '<tr><td>'+MONTHS[i]+'</td><td>'+(r.homes||0).toLocaleString()+'</td><td>'+(r.incRate||0)+'%</td><td>'+(r.incidents||0)+'</td><td style="color:'+C.sec+'">$'+(r.homes>0?(r.securitas/r.homes).toFixed(2):"-")+'</td><td style="color:'+C.proj+';font-weight:500">'+fmt(r.projection)+'</td><td>'+editBtn+'</td></tr>';
+      }
+      var tot = (r.securitas||0)+(r.protos||0)+(r.end2end||0);
+      return '<tr><td>'+MONTHS[i]+'</td><td>'+(r.incRate||0)+'%</td><td>'+(r.incidents||0)+'</td><td>'+(r.homes||0).toLocaleString()+'</td><td style="color:'+C.sec+'">'+fmt(r.securitas)+'</td>'+(is2024?'':'<td style="color:'+C.pro+'">'+fmt(r.protos)+'</td><td style="color:'+C.e2e+'">'+fmt(r.end2end)+'</td>')+'<td style="font-weight:500">'+fmt(tot)+'</td><td>'+editBtn+'</td></tr>';
+    }).join("");
+    var footCols = isProj
+      ? '<td colspan="5">Total</td><td style="color:'+C.proj+'">'+fmt(t.proj)+'</td><td></td>'
+      : '<td colspan="4">Total</td><td style="color:'+C.sec+'">'+fmt(t.sec)+'</td>'+(is2024?'':'<td style="color:'+C.pro+'">'+fmt(t.pro)+'</td><td style="color:'+C.e2e+'">'+fmt(t.e2e)+'</td>')+'<td style="color:'+C.tot+'">'+fmt(is2024?t.sec:t.tot)+'</td><td></td>';
+    el.innerHTML = '<div class="card" style="padding:0;overflow:hidden"><div style="overflow-x:auto"><table><thead><tr>'+colHead+'</tr></thead><tbody>'+bodyRows+'</tbody><tfoot><tr>'+footCols+'</tr></tfoot></table></div></div>';
+  }
+}
+
+function setYear(y)  { activeYear=y; activeMode="actual"; renderAll(); }
+function setMode(m)  { activeMode=m; renderAll(); }
+function setView(v)  { activeView=v; renderView(); renderViewTabs(); }
+function addYear()   { var y=parseInt(prompt("Enter year (e.g. 2027):")); if(!y||isNaN(y))return; activeYear=y; activeMode="actual"; renderAll(); }
+
+function openAddForm() {
+  editingKey=null;
+  document.getElementById("formTitle").textContent="Add entry";
+  document.getElementById("deleteBtn").style.display="none";
+  document.getElementById("fYear").value=activeYear;
+  document.getElementById("fIsProj").checked=activeMode==="proj";
+  ["fIncRate","fIncidents","fHomes","fSecuritas","fProtos","fEnd2End","fProjection"].forEach(function(id){document.getElementById(id).value="";});
+  document.getElementById("fMonth").selectedIndex=0;
+  document.getElementById("formOverlay").classList.add("open");
+}
+
+function openEditForm(key) {
+  var parts = key.split("_");
+  var yr=parseInt(parts[0]), mn=parts[1], isProj=parts[2]==="proj";
+  var entry = data.find(function(d){return d.year===yr&&d.month===mn&&!!d.isProj===isProj;});
+  if (!entry) return;
+  editingKey=key;
+  document.getElementById("formTitle").textContent="Edit entry";
+  document.getElementById("deleteBtn").style.display="";
+  document.getElementById("fYear").value=entry.year;
+  document.getElementById("fMonth").value=entry.month;
+  document.getElementById("fIncRate").value=entry.incRate||"";
+  document.getElementById("fIncidents").value=entry.incidents||"";
+  document.getElementById("fHomes").value=entry.homes||"";
+  document.getElementById("fSecuritas").value=entry.securitas||"";
+  document.getElementById("fProtos").value=entry.protos||"";
+  document.getElementById("fEnd2End").value=entry.end2end||"";
+  document.getElementById("fProjection").value=entry.projection||"";
+  document.getElementById("fIsProj").checked=!!entry.isProj;
+  document.getElementById("formOverlay").classList.add("open");
+}
+
+function saveEntry() {
+  var year=parseInt(document.getElementById("fYear").value);
+  var month=document.getElementById("fMonth").value;
+  var isProj=document.getElementById("fIsProj").checked;
+  var entry={
+    year:year, month:month, isProj:isProj,
+    incRate:parseFloat(document.getElementById("fIncRate").value)||0,
+    incidents:parseInt(document.getElementById("fIncidents").value)||0,
+    homes:parseInt(document.getElementById("fHomes").value)||0,
+    securitas:parseFloat(document.getElementById("fSecuritas").value)||0,
+    protos:parseFloat(document.getElementById("fProtos").value)||0,
+    end2end:parseFloat(document.getElementById("fEnd2End").value)||0,
+    projection:parseFloat(document.getElementById("fProjection").value)||0
+  };
+  var idx=data.findIndex(function(d){return d.year===year&&d.month===month&&!!d.isProj===isProj;});
+  if(idx>=0)data[idx]=entry;else data.push(entry);
+  saveData(); activeYear=year; activeMode=isProj?"proj":"actual";
+  closeModal(); renderAll();
+}
+
+function deleteEntry() {
+  if(!editingKey)return;
+  if(!confirm("Delete this entry?"))return;
+  var parts=editingKey.split("_"), yr=parseInt(parts[0]), mn=parts[1], isProj=parts[2]==="proj";
+  data=data.filter(function(d){return!(d.year===yr&&d.month===mn&&!!d.isProj===isProj);});
+  saveData(); closeModal(); renderAll();
+}
+
+function closeModal()  { document.getElementById("formOverlay").classList.remove("open"); }
+function openImport()  { document.getElementById("importText").value=""; document.getElementById("importOverlay").classList.add("open"); }
+function closeImport() { document.getElementById("importOverlay").classList.remove("open"); }
+
+function exportData() {
+  var b=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  var a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download="security_spend_data.json"; a.click();
+}
+
+function doImport() {
+  try {
+    var imp=JSON.parse(document.getElementById("importText").value);
+    if(!Array.isArray(imp))throw new Error("Expected array");
+    imp.forEach(function(e){
+      var idx=data.findIndex(function(d){return d.year===e.year&&d.month===e.month&&!!d.isProj===!!e.isProj;});
+      if(idx>=0)data[idx]=e;else data.push(e);
+    });
+    saveData(); closeImport(); renderAll();
+    alert("Imported "+imp.length+" entries.");
+  } catch(e){alert("Invalid JSON: "+e.message);}
+}
+
+document.getElementById("formOverlay").addEventListener("click",function(e){if(e.target===e.currentTarget)closeModal();});
+document.getElementById("importOverlay").addEventListener("click",function(e){if(e.target===e.currentTarget)closeImport();});
+
+loadData();
+renderAll();
+</script>
+</body>
+</html>
