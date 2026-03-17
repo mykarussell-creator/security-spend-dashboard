@@ -165,6 +165,9 @@ const SHORT=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","
 const C={sec:"#378ADD",pro:"#1D9E75",e2e:"#D85A30",tot:"#7F77DD",proj:"#BA7517"};
 
 // All data seeded from Google Sheets
+// Bump this version number any time seed data changes — forces a localStorage reset
+const DATA_VERSION = 3;
+
 const SEED=[
   // 2024 - Securitas only
   {year:2024,month:"January",incRate:0,incidents:0,homes:0,securitas:48967.16,protos:0,end2end:0,isProj:false},
@@ -213,9 +216,26 @@ const SEED=[
 let data=[], activeYear=2025, activeMode="actual", activeView="overview", editingKey=null, charts={};
 
 function loadData(){
-  const s=localStorage.getItem("secSpendData2");
-  if(s){try{data=JSON.parse(s);}catch(e){data=[...SEED];}}
-  else{data=[...SEED];saveData();}
+  const version=parseInt(localStorage.getItem("secSpendVersion")||"0");
+  if(version < DATA_VERSION){
+    // Seed data changed — reset to latest seed, preserving any user-added entries not in seed
+    const stored=localStorage.getItem("secSpendData2");
+    let userAdded=[];
+    if(stored){
+      try{
+        const old=JSON.parse(stored);
+        // Keep only entries the user manually added (not in seed)
+        userAdded=old.filter(o=>!SEED.some(s=>s.year===o.year&&s.month===o.month&&!!s.isProj===!!o.isProj));
+      }catch(e){}
+    }
+    data=[...SEED,...userAdded];
+    saveData();
+    localStorage.setItem("secSpendVersion",String(DATA_VERSION));
+  } else {
+    const s=localStorage.getItem("secSpendData2");
+    if(s){try{data=JSON.parse(s);}catch(e){data=[...SEED];}}
+    else{data=[...SEED];saveData();}
+  }
 }
 function saveData(){localStorage.setItem("secSpendData2",JSON.stringify(data));}
 function getKey(year,month,isProj){return `${year}_${month}_${isProj?'proj':'actual'}`;}
@@ -264,7 +284,9 @@ function renderMetrics(){
   const avgIR=rows.length?(rows.reduce((a,r)=>a+(r.incRate||0),0)/rows.length).toFixed(2):0;
   const totInc=rows.reduce((a,r)=>a+(r.incidents||0),0);
 
-  let cards=[["Total spend",fmtK(tot),C.tot],["Securitas",fmtK(totSec),C.sec]];
+  // 2024 is Securitas-only so total = securitas spend only
+  const displayTot = activeYear===2024 ? totSec : tot;
+  let cards=[["Total spend",fmtK(displayTot),C.tot],["Securitas",fmtK(totSec),C.sec]];
   if(activeYear>=2025&&activeMode==="actual"){
     cards.push(["Protos",fmtK(totPro),C.pro],["End2End",fmtK(totE2e),C.e2e]);
   }
