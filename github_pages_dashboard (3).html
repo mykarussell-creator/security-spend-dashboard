@@ -182,26 +182,23 @@ const SEED = [
 var data = [], activeYear = 2025, activeMode = "actual", activeView = "overview", editingKey = null, charts = {};
 
 function loadData() {
-  var ver = parseInt(localStorage.getItem("secSpendVer") || "0");
-  if (ver < DATA_VERSION) {
+  // Always start from seed, then layer in only user-added entries (not in seed)
+  var baseSeed = SEED.map(function(s) { return Object.assign({}, s); });
+  var userAdded = [];
+  try {
     var stored = localStorage.getItem("secSpendData");
-    var userAdded = [];
     if (stored) {
-      try {
-        var old = JSON.parse(stored);
-        userAdded = old.filter(function(o) {
-          return !SEED.some(function(s) { return s.year===o.year && s.month===o.month && !!s.isProj===!!o.isProj; });
+      var parsed = JSON.parse(stored);
+      userAdded = parsed.filter(function(o) {
+        return !SEED.some(function(s) {
+          return s.year===o.year && s.month===o.month && !!s.isProj===!!o.isProj;
         });
-      } catch(e) {}
+      });
     }
-    data = SEED.map(function(s) { return Object.assign({}, s); }).concat(userAdded);
-    saveData();
-    localStorage.setItem("secSpendVer", String(DATA_VERSION));
-  } else {
-    var s = localStorage.getItem("secSpendData");
-    if (s) { try { data = JSON.parse(s); } catch(e) { data = SEED.map(function(s){return Object.assign({},s);}); } }
-    else { data = SEED.map(function(s){return Object.assign({},s);}); saveData(); }
-  }
+  } catch(e) {}
+  data = baseSeed.concat(userAdded);
+  saveData();
+  localStorage.setItem("secSpendVer", String(DATA_VERSION));
 }
 
 function saveData() { localStorage.setItem("secSpendData", JSON.stringify(data)); }
