@@ -32,10 +32,11 @@ header p{font-size:12px;color:var(--text2);}
 .btn.amber{border-color:var(--amber);color:var(--amber);}
 .btn.amber.active{font-weight:500;}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
-.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px;}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:20px;}
 .metric{background:var(--surface2);border-radius:var(--rs);padding:12px 14px;}
-.metric label{font-size:11px;color:var(--text2);display:block;margin-bottom:4px;}
-.metric .val{font-size:20px;font-weight:500;}
+.metric label{font-size:11px;color:var(--text2);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;}
+.metric .val{font-size:18px;font-weight:500;line-height:1.2;}
+.metric .val.large{font-size:15px;}
 .card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:16px;}
 .card h2{font-size:13px;font-weight:500;color:var(--text2);margin-bottom:14px;}
 .legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;font-size:12px;color:var(--text2);}
@@ -129,13 +130,12 @@ input[type=checkbox]{width:auto;}
 </div>
 
 <script>
-const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-const SHORT   = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const C = { sec:"#378ADD", pro:"#1D9E75", e2e:"#D85A30", tot:"#7F77DD", proj:"#BA7517" };
-const DATA_VERSION = 4;
+var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+var SHORT   = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+var C = { sec:"#378ADD", pro:"#1D9E75", e2e:"#D85A30", tot:"#7F77DD", proj:"#BA7517" };
 
-const SEED = [
-  // 2024 — Securitas only
+var SEED = [
+  // 2024 Securitas only — total $1,148,219.62
   {year:2024,month:"January",   incRate:0,incidents:0,homes:0,securitas:48967.16, protos:0,end2end:0,projection:0,isProj:false},
   {year:2024,month:"February",  incRate:0,incidents:0,homes:0,securitas:55704.40, protos:0,end2end:0,projection:0,isProj:false},
   {year:2024,month:"March",     incRate:0,incidents:0,homes:0,securitas:55157.12, protos:0,end2end:0,projection:0,isProj:false},
@@ -148,7 +148,10 @@ const SEED = [
   {year:2024,month:"October",   incRate:0,incidents:0,homes:0,securitas:98989.15, protos:0,end2end:0,projection:0,isProj:false},
   {year:2024,month:"November",  incRate:0,incidents:0,homes:0,securitas:102469.69,protos:0,end2end:0,projection:0,isProj:false},
   {year:2024,month:"December",  incRate:0,incidents:0,homes:0,securitas:97312.61, protos:0,end2end:0,projection:0,isProj:false},
-  // 2025 — All vendors
+  // 2025 Securitas — total $1,200,407.58
+  // 2025 Protos — total $39,421.49
+  // 2025 End2End — total $41,264.51
+  // 2025 combined total — $1,281,093.58
   {year:2025,month:"January",   incRate:2.25,incidents:176,homes:7822, securitas:107872.56,protos:2158.76, end2end:3072.00, projection:0,isProj:false},
   {year:2025,month:"February",  incRate:2.49,incidents:208,homes:8353, securitas:138294.71,protos:3542.65, end2end:4991.25, projection:0,isProj:false},
   {year:2025,month:"March",     incRate:2.38,incidents:201,homes:8445, securitas:144353.20,protos:3598.40, end2end:3110.00, projection:0,isProj:false},
@@ -176,70 +179,78 @@ const SEED = [
   {year:2026,month:"September", incRate:3.88,incidents:150,homes:7256, securitas:76404.73, protos:0,end2end:0,projection:311456.58, isProj:true},
   {year:2026,month:"October",   incRate:3.20,incidents:112,homes:7922, securitas:70881.94, protos:0,end2end:0,projection:354052.16, isProj:true},
   {year:2026,month:"November",  incRate:3.16,incidents:107,homes:9121, securitas:60852.06, protos:0,end2end:0,projection:403953.16, isProj:true},
-  {year:2026,month:"December",  incRate:2.44,incidents:85, homes:10550,securitas:64929.61, protos:0,end2end:0,projection:483079.96, isProj:true},
+  {year:2026,month:"December",  incRate:2.44,incidents:85, homes:10550,securitas:64929.61, protos:0,end2end:0,projection:483079.96, isProj:true}
 ];
 
 var data = [], activeYear = 2025, activeMode = "actual", activeView = "overview", editingKey = null, charts = {};
 
 function loadData() {
-  // Always start from seed, then layer in only user-added entries (not in seed)
-  var baseSeed = SEED.map(function(s) { return Object.assign({}, s); });
+  // Always use fresh seed as base; preserve only user-added entries not in seed
+  var base = SEED.map(function(s){ return Object.assign({}, s); });
   var userAdded = [];
   try {
     var stored = localStorage.getItem("secSpendData");
     if (stored) {
       var parsed = JSON.parse(stored);
-      userAdded = parsed.filter(function(o) {
-        return !SEED.some(function(s) {
-          return s.year===o.year && s.month===o.month && !!s.isProj===!!o.isProj;
-        });
+      userAdded = parsed.filter(function(o){
+        return !SEED.some(function(s){ return s.year===o.year && s.month===o.month && !!s.isProj===!!o.isProj; });
       });
     }
   } catch(e) {}
-  data = baseSeed.concat(userAdded);
+  data = base.concat(userAdded);
   saveData();
-  localStorage.setItem("secSpendVer", String(DATA_VERSION));
 }
 
 function saveData() { localStorage.setItem("secSpendData", JSON.stringify(data)); }
 
 function resetData() {
-  if (!confirm("Reset all data to the original Google Sheets values? Any manually added entries will be lost.")) return;
+  if (!confirm("Reset all data to the original Google Sheets values? Manually added entries will be lost.")) return;
   localStorage.removeItem("secSpendData");
-  localStorage.removeItem("secSpendVer");
   loadData();
   renderAll();
-  alert("Data has been reset to original values.");
+  alert("Data reset to original values.");
 }
 
 function getRows(year, mode) {
   var isProj = mode === "proj";
-  return MONTHS.map(function(m) {
-    return data.find(function(d) { return d.year===year && d.month===m && !!d.isProj===isProj; }) || null;
+  return MONTHS.map(function(m){
+    return data.find(function(d){ return d.year===year && d.month===m && !!d.isProj===isProj; }) || null;
   });
 }
 
 function calcTotals(year, mode) {
   var rows = getRows(year, mode).filter(Boolean);
-  var sec  = rows.reduce(function(a,r){return a+(r.securitas||0);},0);
-  var pro  = rows.reduce(function(a,r){return a+(r.protos||0);},0);
-  var e2e  = rows.reduce(function(a,r){return a+(r.end2end||0);},0);
-  var proj = rows.reduce(function(a,r){return a+(r.projection||0);},0);
-  var inc  = rows.reduce(function(a,r){return a+(r.incidents||0);},0);
-  var ir   = rows.length ? (rows.reduce(function(a,r){return a+(r.incRate||0);},0)/rows.length).toFixed(2) : "0.00";
-  return { sec:sec, pro:pro, e2e:e2e, proj:proj, tot:sec+pro+e2e, inc:inc, ir:ir, rows:rows };
+  var sec  = rows.reduce(function(a,r){ return a+(r.securitas||0); }, 0);
+  var pro  = rows.reduce(function(a,r){ return a+(r.protos||0); },    0);
+  var e2e  = rows.reduce(function(a,r){ return a+(r.end2end||0); },   0);
+  var proj = rows.reduce(function(a,r){ return a+(r.projection||0); },0);
+  var inc  = rows.reduce(function(a,r){ return a+(r.incidents||0); }, 0);
+  var ir   = rows.length ? (rows.reduce(function(a,r){ return a+(r.incRate||0); },0)/rows.length).toFixed(2) : "0.00";
+  return { sec:sec, pro:pro, e2e:e2e, proj:proj, tot:sec+pro+e2e, inc:inc, ir:ir };
 }
 
-function fmt(n)  { return "$" + Math.round(n||0).toLocaleString(); }
-function fmtK(n) { return "$" + ((n||0)/1000).toFixed(1) + "k"; }
-function getYears() { return Array.from(new Set(data.map(function(d){return d.year;}))).sort(); }
+// Format: full dollars with commas, no decimals
+function fmt(n) { return "$" + Math.round(n||0).toLocaleString(); }
+
+// Smart format: full $ for >= $100k, else $xk
+function fmtSmart(n) {
+  n = n || 0;
+  if (n >= 100000) return "$" + Math.round(n).toLocaleString();
+  return "$" + (n/1000).toFixed(1) + "k";
+}
+
+function getYears() {
+  var seen = {}, years = [];
+  data.forEach(function(d){ if(!seen[d.year]){ seen[d.year]=true; years.push(d.year); } });
+  return years.sort();
+}
 
 function renderAll() { renderYearTabs(); renderNote(); renderMetrics(); renderViewTabs(); renderView(); }
 
 function renderYearTabs() {
   var years = getYears();
   if (years.indexOf(activeYear) < 0) activeYear = years[years.length-1] || 2025;
-  var hasProj = data.some(function(d){return d.year===activeYear && d.isProj;});
+  var hasProj = data.some(function(d){ return d.year===activeYear && d.isProj; });
   var html = years.map(function(y){
     return '<button class="btn'+(y===activeYear?' active':'')+'" onclick="setYear('+y+')">'+y+'</button>';
   }).join("");
@@ -251,9 +262,9 @@ function renderYearTabs() {
 
 function renderNote() {
   var el = document.getElementById("noteArea");
-  if (activeMode === "proj") {
-    el.innerHTML = '<div class="note">Showing <strong>2026 Securitas projections</strong> based on 2025 spend per home \xd7 forecasted inventory. Actual spend shown under 2026 tab.</div>';
-  } else if (activeYear === 2024) {
+  if (activeMode==="proj") {
+    el.innerHTML = '<div class="note">Showing <strong>2026 Securitas projections</strong> based on 2025 spend per home \xd7 forecasted inventory. Actuals shown under the 2026 tab.</div>';
+  } else if (activeYear===2024) {
     el.innerHTML = '<div class="note">2024 data contains Securitas spend only. Protos and End2End tracking began in 2025.</div>';
   } else {
     el.innerHTML = "";
@@ -263,12 +274,21 @@ function renderNote() {
 function renderMetrics() {
   var t = calcTotals(activeYear, activeMode);
   var displayTot = activeYear===2024 ? t.sec : t.tot;
-  var cards = [["Total spend", fmtK(displayTot), C.tot], ["Securitas", fmtK(t.sec), C.sec]];
-  if (activeYear >= 2025 && activeMode === "actual") { cards.push(["Protos", fmtK(t.pro), C.pro], ["End2End", fmtK(t.e2e), C.e2e]); }
-  if (activeMode === "proj" && t.proj > 0) cards.push(["Projected total", fmtK(t.proj), C.proj]);
-  cards.push(["Avg inc. rate", t.ir+"%", "var(--text)"], ["Total incidents", t.inc, "var(--text)"]);
+  var cards = [
+    ["Total spend",    fmtSmart(displayTot), C.tot],
+    ["Securitas",      fmtSmart(t.sec),      C.sec]
+  ];
+  if (activeYear >= 2025 && activeMode==="actual") {
+    cards.push(["Protos",  fmtSmart(t.pro), C.pro]);
+    cards.push(["End2End", fmtSmart(t.e2e), C.e2e]);
+  }
+  if (activeMode==="proj" && t.proj > 0) cards.push(["Projected total", fmtSmart(t.proj), C.proj]);
+  cards.push(["Avg inc. rate", t.ir+"%", "var(--text)"]);
+  cards.push(["Total incidents", t.inc, "var(--text)"]);
+
   document.getElementById("metricsRow").innerHTML = cards.map(function(c){
-    return '<div class="metric"><label>'+c[0]+'</label><div class="val" style="color:'+c[2]+'">'+c[1]+'</div></div>';
+    var valClass = String(c[1]).length > 10 ? "val large" : "val";
+    return '<div class="metric"><label>'+c[0]+'</label><div class="'+valClass+'" style="color:'+c[2]+'">'+c[1]+'</div></div>';
   }).join("");
 }
 
@@ -280,25 +300,28 @@ function renderViewTabs() {
   }).join("");
 }
 
-function destroyCharts() { Object.keys(charts).forEach(function(k){try{charts[k].destroy();}catch(e){}}); charts={}; }
+function destroyCharts() {
+  Object.keys(charts).forEach(function(k){ try{ charts[k].destroy(); }catch(e){} });
+  charts = {};
+}
 
 function renderView() {
   destroyCharts();
   var el = document.getElementById("viewContent");
   var rows = getRows(activeYear, activeMode);
-  var active = rows.map(function(r,i){return{r:r,i:i};}).filter(function(x){return x.r;});
-  var labels = active.map(function(x){return SHORT[x.i];});
+  var active = rows.map(function(r,i){ return {r:r,i:i}; }).filter(function(x){ return x.r; });
+  var labels = active.map(function(x){ return SHORT[x.i]; });
   var t = calcTotals(activeYear, activeMode);
   var is2024 = activeYear===2024;
   var isProj = activeMode==="proj";
 
-  if (activeView === "overview") {
+  if (activeView==="overview") {
     var datasets = is2024
-      ? [{label:"Securitas", data:active.map(function(x){return x.r.securitas||0;}), backgroundColor:C.sec}]
+      ? [{label:"Securitas",data:active.map(function(x){return x.r.securitas||0;}),backgroundColor:C.sec}]
       : [
-          {label:"Securitas", data:active.map(function(x){return x.r.securitas||0;}), backgroundColor:C.sec},
-          {label:"Protos",    data:active.map(function(x){return x.r.protos||0;}),    backgroundColor:C.pro},
-          {label:"End2End",   data:active.map(function(x){return x.r.end2end||0;}),   backgroundColor:C.e2e}
+          {label:"Securitas",data:active.map(function(x){return x.r.securitas||0;}),backgroundColor:C.sec},
+          {label:"Protos",   data:active.map(function(x){return x.r.protos||0;}),   backgroundColor:C.pro},
+          {label:"End2End",  data:active.map(function(x){return x.r.end2end||0;}),  backgroundColor:C.e2e}
         ];
     var legHtml = is2024
       ? '<span><i style="background:'+C.sec+'"></i>Securitas</span>'
@@ -307,50 +330,87 @@ function renderView() {
       '<div class="card"><h2>Monthly spend by vendor</h2><div class="legend">'+legHtml+'</div><div class="chart-wrap"><canvas id="cBar"></canvas></div></div>'+
       '<div class="card"><h2>Incident rate trend (%)</h2><div class="chart-wrap" style="height:180px"><canvas id="cIr"></canvas></div></div>';
     setTimeout(function(){
-      charts.bar = new Chart(document.getElementById("cBar"),{type:"bar",data:{labels:labels,datasets:datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{autoSkip:false,maxRotation:45}}}}});
+      charts.bar = new Chart(document.getElementById("cBar"),{
+        type:"bar",
+        data:{labels:labels,datasets:datasets},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{autoSkip:false,maxRotation:45}},y:{ticks:{callback:function(v){return"$"+(v/1000).toFixed(0)+"k";}}}}}
+      });
       if (active.some(function(x){return x.r.incRate>0;})) {
-        charts.ir = new Chart(document.getElementById("cIr"),{type:"line",data:{labels:labels,datasets:[{label:"Inc. Rate",data:active.map(function(x){return x.r.incRate||0;}),borderColor:C.e2e,backgroundColor:"transparent",tension:0.3,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:function(v){return v+"%";}}}}}});
+        charts.ir = new Chart(document.getElementById("cIr"),{
+          type:"line",
+          data:{labels:labels,datasets:[{label:"Inc. Rate",data:active.map(function(x){return x.r.incRate||0;}),borderColor:C.e2e,backgroundColor:"transparent",tension:0.3,pointRadius:3}]},
+          options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:function(v){return v+"%";}}}}}
+        });
       } else {
         document.getElementById("cIr").parentElement.innerHTML = '<p style="color:var(--text3);font-size:13px;padding:20px 0">No incident rate data for 2024.</p>';
       }
-    }, 0);
+    },0);
 
-  } else if (activeView === "spend mix") {
+  } else if (activeView==="spend mix") {
     var tot1 = t.tot || 1;
     var bars = is2024
-      ? [["Securitas", t.sec, C.sec]]
-      : [["Securitas", t.sec, C.sec], ["Protos", t.pro, C.pro], ["End2End", t.e2e, C.e2e]];
+      ? [["Securitas",t.sec,C.sec]]
+      : [["Securitas",t.sec,C.sec],["Protos",t.pro,C.pro],["End2End",t.e2e,C.e2e]];
     var barsHtml = bars.map(function(b){
       var p = Math.round(b[1]/tot1*100);
-      return '<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px"><span>'+b[0]+'</span><span style="color:var(--text2)">'+fmt(b[1])+' <span style="color:'+b[2]+';font-weight:500">('+p+'%)</span></span></div><div style="height:8px;border-radius:4px;background:var(--surface2);overflow:hidden"><div style="height:100%;width:'+p+'%;background:'+b[2]+';border-radius:4px"></div></div></div>';
+      return '<div style="margin-bottom:14px">'+
+        '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px">'+
+        '<span>'+b[0]+'</span>'+
+        '<span style="color:var(--text2)">'+fmt(b[1])+' <span style="color:'+b[2]+';font-weight:500">('+p+'%)</span></span>'+
+        '</div>'+
+        '<div style="height:8px;border-radius:4px;background:var(--surface2);overflow:hidden">'+
+        '<div style="height:100%;width:'+p+'%;background:'+b[2]+';border-radius:4px"></div></div></div>';
     }).join("");
     el.innerHTML =
       '<div class="card"><h2>Vendor spend breakdown</h2>'+barsHtml+'</div>'+
       '<div class="card"><h2>Total monthly spend</h2><div class="chart-wrap"><canvas id="cTot"></canvas></div></div>';
     setTimeout(function(){
-      charts.tot = new Chart(document.getElementById("cTot"),{type:"line",data:{labels:labels,datasets:[{label:"Total",data:active.map(function(x){return(x.r.securitas||0)+(x.r.protos||0)+(x.r.end2end||0);}),borderColor:C.tot,backgroundColor:"transparent",tension:0.3,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:function(v){return"$"+(v/1000).toFixed(0)+"k";}}}}}});
-    }, 0);
+      charts.tot = new Chart(document.getElementById("cTot"),{
+        type:"line",
+        data:{labels:labels,datasets:[{label:"Total",data:active.map(function(x){return(x.r.securitas||0)+(x.r.protos||0)+(x.r.end2end||0);}),borderColor:C.tot,backgroundColor:"transparent",tension:0.3,pointRadius:3}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:function(v){return"$"+(v/1000).toFixed(0)+"k";}}}}}
+      });
+    },0);
 
-  } else if (activeView === "per home") {
-    var sph = active.map(function(x){return x.r.homes>0?parseFloat((x.r.securitas/x.r.homes).toFixed(2)):0;});
+  } else if (activeView==="per home") {
+    var sph = active.map(function(x){ return x.r.homes>0 ? parseFloat((x.r.securitas/x.r.homes).toFixed(2)) : 0; });
     var sphCards = active.map(function(x,idx){
-      return '<div style="background:var(--surface2);border-radius:6px;padding:10px 12px"><div style="font-size:11px;color:var(--text2)">'+SHORT[x.i]+'</div><div style="font-size:15px;font-weight:500">$'+sph[idx]+'</div><div style="font-size:11px;color:var(--text3)">'+(x.r.homes||0).toLocaleString()+' homes</div></div>';
+      return '<div style="background:var(--surface2);border-radius:6px;padding:10px 12px">'+
+        '<div style="font-size:11px;color:var(--text2)">'+SHORT[x.i]+'</div>'+
+        '<div style="font-size:15px;font-weight:500">$'+sph[idx]+'</div>'+
+        '<div style="font-size:11px;color:var(--text3)">'+(x.r.homes||0).toLocaleString()+' homes</div></div>';
     }).join("");
     el.innerHTML =
       '<div class="card"><h2>Securitas spend per home</h2><div class="chart-wrap"><canvas id="cSph"></canvas></div></div>'+
       '<div class="card" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;padding:12px">'+sphCards+'</div>';
     setTimeout(function(){
-      charts.sph = new Chart(document.getElementById("cSph"),{type:"line",data:{labels:labels,datasets:[{label:"$/home",data:sph,borderColor:C.sec,backgroundColor:"transparent",tension:0.3,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:function(v){return"$"+v.toFixed(2);}}}}}});
-    }, 0);
+      charts.sph = new Chart(document.getElementById("cSph"),{
+        type:"line",
+        data:{labels:labels,datasets:[{label:"$/home",data:sph,borderColor:C.sec,backgroundColor:"transparent",tension:0.3,pointRadius:3}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:function(v){return"$"+v.toFixed(2);}}}}}
+      });
+    },0);
 
-  } else if (activeView === "projections") {
-    var actual2026 = MONTHS.map(function(m){return data.find(function(d){return d.year===2026&&d.month===m&&!d.isProj;})||null;});
+  } else if (activeView==="projections") {
+    var actual2026 = MONTHS.map(function(m){ return data.find(function(d){ return d.year===2026&&d.month===m&&!d.isProj; })||null; });
     var projRows = active.map(function(x){
-      return '<tr><td>'+MONTHS[x.i]+'</td><td>'+(x.r.homes||0).toLocaleString()+'</td><td>'+(x.r.incRate||0)+'%</td><td>'+(x.r.incidents||0)+'</td><td style="color:'+C.sec+'">$'+(x.r.homes>0?(x.r.securitas/x.r.homes).toFixed(2):"-")+'</td><td style="color:'+C.proj+';font-weight:500">'+fmt(x.r.projection)+'</td></tr>';
+      return '<tr>'+
+        '<td>'+MONTHS[x.i]+'</td>'+
+        '<td>'+(x.r.homes||0).toLocaleString()+'</td>'+
+        '<td>'+(x.r.incRate||0)+'%</td>'+
+        '<td>'+(x.r.incidents||0)+'</td>'+
+        '<td style="color:'+C.sec+'">$'+(x.r.homes>0?(x.r.securitas/x.r.homes).toFixed(2):"-")+'</td>'+
+        '<td style="color:'+C.proj+';font-weight:500">'+fmt(x.r.projection)+'</td></tr>';
     }).join("");
     el.innerHTML =
       '<div class="card"><h2>Projected vs actual Securitas spend 2026</h2><div class="chart-wrap" style="height:260px"><canvas id="cProj"></canvas></div></div>'+
-      '<div class="card" style="overflow-x:auto;padding:0"><table><thead><tr><th style="text-align:left">Month</th><th>Homes</th><th>Inc. rate</th><th>Incidents</th><th style="color:'+C.sec+'">2025 sec/home</th><th style="color:'+C.proj+'">2026 projection</th></tr></thead><tbody>'+projRows+'</tbody><tfoot><tr><td colspan="5">Total projected</td><td style="color:'+C.proj+'">'+fmt(t.proj)+'</td></tr></tfoot></table></div>';
+      '<div class="card" style="overflow-x:auto;padding:0"><table>'+
+      '<thead><tr>'+
+      '<th style="text-align:left">Month</th><th>Homes</th><th>Inc. rate</th><th>Incidents</th>'+
+      '<th style="color:'+C.sec+'">2025 sec/home</th><th style="color:'+C.proj+'">2026 projection</th>'+
+      '</tr></thead><tbody>'+projRows+'</tbody>'+
+      '<tfoot><tr><td colspan="5">Total projected</td><td style="color:'+C.proj+'">'+fmt(t.proj)+'</td></tr></tfoot>'+
+      '</table></div>';
     setTimeout(function(){
       charts.proj = new Chart(document.getElementById("cProj"),{
         type:"bar",
@@ -358,28 +418,45 @@ function renderView() {
           {label:"2026 Projection",data:active.map(function(x){return x.r.projection||0;}),backgroundColor:C.proj+"99"},
           {label:"2026 Actual",    data:active.map(function(x){var a=actual2026[x.i];return a?a.securitas:null;}),backgroundColor:C.sec}
         ]},
-        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true}},scales:{x:{ticks:{autoSkip:false,maxRotation:45}},y:{ticks:{callback:function(v){return"$"+(v/1000).toFixed(0)+"k";}}}}}
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true}},
+          scales:{x:{ticks:{autoSkip:false,maxRotation:45}},y:{ticks:{callback:function(v){return"$"+(v/1000).toFixed(0)+"k";}}}}}
       });
-    }, 0);
+    },0);
 
-  } else if (activeView === "table") {
+  } else if (activeView==="table") {
     var colHead = isProj
-      ? '<th style="text-align:left">Month</th><th>Homes</th><th>Inc. rate</th><th>Incidents</th><th style="color:'+C.sec+'">2025 sec/home basis</th><th style="color:'+C.proj+'">2026 projection</th><th></th>'
-      : '<th style="text-align:left">Month</th><th>Inc. rate</th><th>Incidents</th><th>Homes</th><th style="color:'+C.sec+'">Securitas</th>'+(is2024?'':'<th style="color:'+C.pro+'">Protos</th><th style="color:'+C.e2e+'">End2End</th>')+'<th>Total</th><th></th>';
+      ? '<th style="text-align:left">Month</th><th>Homes</th><th>Inc. rate</th><th>Incidents</th><th style="color:'+C.sec+'">2025 sec/home</th><th style="color:'+C.proj+'">2026 projection</th><th></th>'
+      : '<th style="text-align:left">Month</th><th>Inc. rate</th><th>Incidents</th><th>Homes</th>'+
+        '<th style="color:'+C.sec+'">Securitas</th>'+
+        (is2024?'':'<th style="color:'+C.pro+'">Protos</th><th style="color:'+C.e2e+'">End2End</th>')+
+        '<th>Total</th><th></th>';
     var bodyRows = active.map(function(x){
       var r=x.r, i=x.i;
       var key = r.year+"_"+r.month+"_"+(r.isProj?"proj":"actual");
       var editBtn = '<div class="row-actions"><button onclick="openEditForm(\''+key+'\')">&#9998;</button></div>';
       if (isProj) {
-        return '<tr><td>'+MONTHS[i]+'</td><td>'+(r.homes||0).toLocaleString()+'</td><td>'+(r.incRate||0)+'%</td><td>'+(r.incidents||0)+'</td><td style="color:'+C.sec+'">$'+(r.homes>0?(r.securitas/r.homes).toFixed(2):"-")+'</td><td style="color:'+C.proj+';font-weight:500">'+fmt(r.projection)+'</td><td>'+editBtn+'</td></tr>';
+        return '<tr>'+
+          '<td>'+MONTHS[i]+'</td><td>'+(r.homes||0).toLocaleString()+'</td><td>'+(r.incRate||0)+'%</td><td>'+(r.incidents||0)+'</td>'+
+          '<td style="color:'+C.sec+'">$'+(r.homes>0?(r.securitas/r.homes).toFixed(2):"-")+'</td>'+
+          '<td style="color:'+C.proj+';font-weight:500">'+fmt(r.projection)+'</td><td>'+editBtn+'</td></tr>';
       }
-      var tot = (r.securitas||0)+(r.protos||0)+(r.end2end||0);
-      return '<tr><td>'+MONTHS[i]+'</td><td>'+(r.incRate||0)+'%</td><td>'+(r.incidents||0)+'</td><td>'+(r.homes||0).toLocaleString()+'</td><td style="color:'+C.sec+'">'+fmt(r.securitas)+'</td>'+(is2024?'':'<td style="color:'+C.pro+'">'+fmt(r.protos)+'</td><td style="color:'+C.e2e+'">'+fmt(r.end2end)+'</td>')+'<td style="font-weight:500">'+fmt(tot)+'</td><td>'+editBtn+'</td></tr>';
+      var rowTot = (r.securitas||0)+(r.protos||0)+(r.end2end||0);
+      return '<tr>'+
+        '<td>'+MONTHS[i]+'</td><td>'+(r.incRate||0)+'%</td><td>'+(r.incidents||0)+'</td><td>'+(r.homes||0).toLocaleString()+'</td>'+
+        '<td style="color:'+C.sec+'">'+fmt(r.securitas)+'</td>'+
+        (is2024?'':'<td style="color:'+C.pro+'">'+fmt(r.protos)+'</td><td style="color:'+C.e2e+'">'+fmt(r.end2end)+'</td>')+
+        '<td style="font-weight:500">'+fmt(rowTot)+'</td><td>'+editBtn+'</td></tr>';
     }).join("");
     var footCols = isProj
       ? '<td colspan="5">Total</td><td style="color:'+C.proj+'">'+fmt(t.proj)+'</td><td></td>'
-      : '<td colspan="4">Total</td><td style="color:'+C.sec+'">'+fmt(t.sec)+'</td>'+(is2024?'':'<td style="color:'+C.pro+'">'+fmt(t.pro)+'</td><td style="color:'+C.e2e+'">'+fmt(t.e2e)+'</td>')+'<td style="color:'+C.tot+'">'+fmt(is2024?t.sec:t.tot)+'</td><td></td>';
-    el.innerHTML = '<div class="card" style="padding:0;overflow:hidden"><div style="overflow-x:auto"><table><thead><tr>'+colHead+'</tr></thead><tbody>'+bodyRows+'</tbody><tfoot><tr>'+footCols+'</tr></tfoot></table></div></div>';
+      : '<td colspan="4">Total</td>'+
+        '<td style="color:'+C.sec+'">'+fmt(t.sec)+'</td>'+
+        (is2024?'':'<td style="color:'+C.pro+'">'+fmt(t.pro)+'</td><td style="color:'+C.e2e+'">'+fmt(t.e2e)+'</td>')+
+        '<td style="color:'+C.tot+'">'+fmt(is2024?t.sec:t.tot)+'</td><td></td>';
+    el.innerHTML =
+      '<div class="card" style="padding:0;overflow:hidden"><div style="overflow-x:auto">'+
+      '<table><thead><tr>'+colHead+'</tr></thead><tbody>'+bodyRows+'</tbody>'+
+      '<tfoot><tr>'+footCols+'</tr></tfoot></table></div></div>';
   }
 }
 
@@ -389,62 +466,61 @@ function setView(v)  { activeView=v; renderView(); renderViewTabs(); }
 function addYear()   { var y=parseInt(prompt("Enter year (e.g. 2027):")); if(!y||isNaN(y))return; activeYear=y; activeMode="actual"; renderAll(); }
 
 function openAddForm() {
-  editingKey=null;
-  document.getElementById("formTitle").textContent="Add entry";
-  document.getElementById("deleteBtn").style.display="none";
-  document.getElementById("fYear").value=activeYear;
-  document.getElementById("fIsProj").checked=activeMode==="proj";
-  ["fIncRate","fIncidents","fHomes","fSecuritas","fProtos","fEnd2End","fProjection"].forEach(function(id){document.getElementById(id).value="";});
-  document.getElementById("fMonth").selectedIndex=0;
+  editingKey = null;
+  document.getElementById("formTitle").textContent = "Add entry";
+  document.getElementById("deleteBtn").style.display = "none";
+  document.getElementById("fYear").value = activeYear;
+  document.getElementById("fIsProj").checked = activeMode==="proj";
+  ["fIncRate","fIncidents","fHomes","fSecuritas","fProtos","fEnd2End","fProjection"].forEach(function(id){ document.getElementById(id).value=""; });
+  document.getElementById("fMonth").selectedIndex = 0;
   document.getElementById("formOverlay").classList.add("open");
 }
 
 function openEditForm(key) {
-  var parts = key.split("_");
-  var yr=parseInt(parts[0]), mn=parts[1], isProj=parts[2]==="proj";
-  var entry = data.find(function(d){return d.year===yr&&d.month===mn&&!!d.isProj===isProj;});
+  var parts = key.split("_"), yr=parseInt(parts[0]), mn=parts[1], isProj=parts[2]==="proj";
+  var entry = data.find(function(d){ return d.year===yr && d.month===mn && !!d.isProj===isProj; });
   if (!entry) return;
-  editingKey=key;
-  document.getElementById("formTitle").textContent="Edit entry";
-  document.getElementById("deleteBtn").style.display="";
-  document.getElementById("fYear").value=entry.year;
-  document.getElementById("fMonth").value=entry.month;
-  document.getElementById("fIncRate").value=entry.incRate||"";
-  document.getElementById("fIncidents").value=entry.incidents||"";
-  document.getElementById("fHomes").value=entry.homes||"";
-  document.getElementById("fSecuritas").value=entry.securitas||"";
-  document.getElementById("fProtos").value=entry.protos||"";
-  document.getElementById("fEnd2End").value=entry.end2end||"";
-  document.getElementById("fProjection").value=entry.projection||"";
-  document.getElementById("fIsProj").checked=!!entry.isProj;
+  editingKey = key;
+  document.getElementById("formTitle").textContent = "Edit entry";
+  document.getElementById("deleteBtn").style.display = "";
+  document.getElementById("fYear").value      = entry.year;
+  document.getElementById("fMonth").value     = entry.month;
+  document.getElementById("fIncRate").value   = entry.incRate||"";
+  document.getElementById("fIncidents").value = entry.incidents||"";
+  document.getElementById("fHomes").value     = entry.homes||"";
+  document.getElementById("fSecuritas").value = entry.securitas||"";
+  document.getElementById("fProtos").value    = entry.protos||"";
+  document.getElementById("fEnd2End").value   = entry.end2end||"";
+  document.getElementById("fProjection").value= entry.projection||"";
+  document.getElementById("fIsProj").checked  = !!entry.isProj;
   document.getElementById("formOverlay").classList.add("open");
 }
 
 function saveEntry() {
-  var year=parseInt(document.getElementById("fYear").value);
-  var month=document.getElementById("fMonth").value;
-  var isProj=document.getElementById("fIsProj").checked;
-  var entry={
+  var year   = parseInt(document.getElementById("fYear").value);
+  var month  = document.getElementById("fMonth").value;
+  var isProj = document.getElementById("fIsProj").checked;
+  var entry  = {
     year:year, month:month, isProj:isProj,
-    incRate:parseFloat(document.getElementById("fIncRate").value)||0,
-    incidents:parseInt(document.getElementById("fIncidents").value)||0,
-    homes:parseInt(document.getElementById("fHomes").value)||0,
-    securitas:parseFloat(document.getElementById("fSecuritas").value)||0,
-    protos:parseFloat(document.getElementById("fProtos").value)||0,
-    end2end:parseFloat(document.getElementById("fEnd2End").value)||0,
+    incRate:   parseFloat(document.getElementById("fIncRate").value)||0,
+    incidents: parseInt(document.getElementById("fIncidents").value)||0,
+    homes:     parseInt(document.getElementById("fHomes").value)||0,
+    securitas: parseFloat(document.getElementById("fSecuritas").value)||0,
+    protos:    parseFloat(document.getElementById("fProtos").value)||0,
+    end2end:   parseFloat(document.getElementById("fEnd2End").value)||0,
     projection:parseFloat(document.getElementById("fProjection").value)||0
   };
-  var idx=data.findIndex(function(d){return d.year===year&&d.month===month&&!!d.isProj===isProj;});
-  if(idx>=0)data[idx]=entry;else data.push(entry);
+  var idx = data.findIndex(function(d){ return d.year===year && d.month===month && !!d.isProj===isProj; });
+  if (idx>=0) data[idx]=entry; else data.push(entry);
   saveData(); activeYear=year; activeMode=isProj?"proj":"actual";
   closeModal(); renderAll();
 }
 
 function deleteEntry() {
-  if(!editingKey)return;
-  if(!confirm("Delete this entry?"))return;
+  if (!editingKey) return;
+  if (!confirm("Delete this entry?")) return;
   var parts=editingKey.split("_"), yr=parseInt(parts[0]), mn=parts[1], isProj=parts[2]==="proj";
-  data=data.filter(function(d){return!(d.year===yr&&d.month===mn&&!!d.isProj===isProj);});
+  data = data.filter(function(d){ return !(d.year===yr && d.month===mn && !!d.isProj===isProj); });
   saveData(); closeModal(); renderAll();
 }
 
@@ -453,25 +529,25 @@ function openImport()  { document.getElementById("importText").value=""; documen
 function closeImport() { document.getElementById("importOverlay").classList.remove("open"); }
 
 function exportData() {
-  var b=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
-  var a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download="security_spend_data.json"; a.click();
+  var b = new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  var a = document.createElement("a"); a.href=URL.createObjectURL(b); a.download="security_spend_data.json"; a.click();
 }
 
 function doImport() {
   try {
-    var imp=JSON.parse(document.getElementById("importText").value);
-    if(!Array.isArray(imp))throw new Error("Expected array");
+    var imp = JSON.parse(document.getElementById("importText").value);
+    if (!Array.isArray(imp)) throw new Error("Expected array");
     imp.forEach(function(e){
-      var idx=data.findIndex(function(d){return d.year===e.year&&d.month===e.month&&!!d.isProj===!!e.isProj;});
-      if(idx>=0)data[idx]=e;else data.push(e);
+      var idx = data.findIndex(function(d){ return d.year===e.year && d.month===e.month && !!d.isProj===!!e.isProj; });
+      if (idx>=0) data[idx]=e; else data.push(e);
     });
     saveData(); closeImport(); renderAll();
     alert("Imported "+imp.length+" entries.");
-  } catch(e){alert("Invalid JSON: "+e.message);}
+  } catch(e) { alert("Invalid JSON: "+e.message); }
 }
 
-document.getElementById("formOverlay").addEventListener("click",function(e){if(e.target===e.currentTarget)closeModal();});
-document.getElementById("importOverlay").addEventListener("click",function(e){if(e.target===e.currentTarget)closeImport();});
+document.getElementById("formOverlay").addEventListener("click",function(e){ if(e.target===e.currentTarget) closeModal(); });
+document.getElementById("importOverlay").addEventListener("click",function(e){ if(e.target===e.currentTarget) closeImport(); });
 
 loadData();
 renderAll();
