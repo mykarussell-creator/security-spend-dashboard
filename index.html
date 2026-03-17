@@ -7,88 +7,73 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
   :root {
-    --bg: #f9f9f8; --surface: #ffffff; --surface2: #f1f0ec;
-    --border: rgba(0,0,0,0.1); --border2: rgba(0,0,0,0.18);
-    --text: #1a1a1a; --text2: #666; --text3: #999;
-    --blue: #378ADD; --green: #1D9E75; --orange: #D85A30; --purple: #7F77DD;
-    --radius: 10px; --radius-sm: 6px;
+    --bg:#f9f9f8;--surface:#ffffff;--surface2:#f1f0ec;
+    --border:rgba(0,0,0,0.1);--border2:rgba(0,0,0,0.2);
+    --text:#1a1a1a;--text2:#666;--text3:#999;
+    --blue:#378ADD;--green:#1D9E75;--orange:#D85A30;--purple:#7F77DD;--amber:#BA7517;
+    --radius:10px;--radius-sm:6px;
   }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #1a1a18; --surface: #252523; --surface2: #2e2e2b;
-      --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.18);
-      --text: #f0efe8; --text2: #aaa; --text3: #666;
-    }
+  @media(prefers-color-scheme:dark){
+    :root{--bg:#1a1a18;--surface:#252523;--surface2:#2e2e2b;--border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.2);--text:#f0efe8;--text2:#aaa;--text3:#555;}
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
-  header { background: var(--surface); border-bottom: 0.5px solid var(--border); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
-  header h1 { font-size: 16px; font-weight: 500; }
-  header p { font-size: 12px; color: var(--text2); }
-  .main { max-width: 1100px; margin: 0 auto; padding: 20px 16px; }
-  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
-  .btn { padding: 6px 14px; border: 0.5px solid var(--border2); border-radius: var(--radius-sm); background: transparent; color: var(--text); cursor: pointer; font-size: 13px; font-weight: 400; transition: background 0.15s; }
-  .btn:hover { background: var(--surface2); }
-  .btn.active { background: var(--surface); border-color: var(--blue); color: var(--blue); font-weight: 500; }
-  .btn.primary { background: var(--blue); color: #fff; border-color: var(--blue); }
-  .btn.primary:hover { opacity: 0.9; }
-  .btn.danger { color: #c0392b; border-color: rgba(192,57,43,0.3); }
-  .btn.danger:hover { background: rgba(192,57,43,0.07); }
-  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px; }
-  .metric { background: var(--surface2); border-radius: var(--radius-sm); padding: 12px 14px; }
-  .metric label { font-size: 11px; color: var(--text2); display: block; margin-bottom: 4px; }
-  .metric .val { font-size: 22px; font-weight: 500; }
-  .card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
-  .card h2 { font-size: 13px; font-weight: 500; color: var(--text2); margin-bottom: 14px; }
-  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; font-size: 12px; color: var(--text2); }
-  .legend span { display: flex; align-items: center; gap: 5px; }
-  .legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; flex-shrink: 0; }
-  .chart-wrap { position: relative; width: 100%; height: 240px; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  thead tr { border-bottom: 0.5px solid var(--border2); }
-  th { padding: 8px 10px; font-weight: 500; color: var(--text2); text-align: right; white-space: nowrap; }
-  th:first-child { text-align: left; }
-  td { padding: 7px 10px; border-bottom: 0.5px solid var(--border); text-align: right; }
-  td:first-child { text-align: left; }
-  tfoot td { font-weight: 500; border-top: 0.5px solid var(--border2); border-bottom: none; background: var(--surface2); }
-  tr:last-child td { border-bottom: none; }
-  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
-
-  /* Modal */
-  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; align-items: center; justify-content: center; }
-  .overlay.open { display: flex; }
-  .modal { background: var(--surface); border-radius: var(--radius); padding: 24px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.18); }
-  .modal h2 { font-size: 16px; font-weight: 500; margin-bottom: 18px; }
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .form-group { display: flex; flex-direction: column; gap: 4px; }
-  .form-group.full { grid-column: 1 / -1; }
-  label.field { font-size: 12px; color: var(--text2); font-weight: 500; }
-  input, select { padding: 7px 10px; border: 0.5px solid var(--border2); border-radius: var(--radius-sm); background: var(--bg); color: var(--text); font-size: 13px; width: 100%; }
-  input:focus, select:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px rgba(55,138,221,0.15); }
-  .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
-  .import-area { background: var(--surface2); border: 0.5px dashed var(--border2); border-radius: var(--radius-sm); padding: 12px; margin-top: 10px; font-size: 12px; color: var(--text2); }
-  .import-area textarea { width: 100%; height: 100px; font-family: monospace; font-size: 11px; margin-top: 6px; resize: vertical; }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; }
-  .badge-blue { background: rgba(55,138,221,0.12); color: var(--blue); }
-  .badge-green { background: rgba(29,158,117,0.12); color: var(--green); }
-  .badge-orange { background: rgba(216,90,48,0.12); color: var(--orange); }
-  .empty { text-align: center; padding: 40px; color: var(--text3); font-size: 13px; }
-  .row-actions { display: flex; gap: 4px; justify-content: flex-end; }
-  .row-actions button { border: none; background: transparent; cursor: pointer; color: var(--text3); font-size: 12px; padding: 2px 4px; border-radius: 3px; }
-  .row-actions button:hover { background: var(--surface2); color: var(--text); }
-  .section-divider { display: flex; align-items: center; gap: 10px; margin: 20px 0; }
-  .section-divider hr { flex: 1; border: none; border-top: 0.5px solid var(--border); }
-  .section-divider span { font-size: 12px; color: var(--text3); white-space: nowrap; }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;}
+  header{background:var(--surface);border-bottom:0.5px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;flex-wrap:wrap;gap:8px;}
+  header h1{font-size:16px;font-weight:500;}
+  header p{font-size:12px;color:var(--text2);}
+  .main{max-width:1100px;margin:0 auto;padding:20px 16px;}
+  .btn{padding:6px 14px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);background:transparent;color:var(--text);cursor:pointer;font-size:13px;transition:background 0.15s;}
+  .btn:hover{background:var(--surface2);}
+  .btn.active{background:var(--surface);border-color:var(--blue);color:var(--blue);font-weight:500;}
+  .btn.primary{background:var(--blue);color:#fff;border-color:var(--blue);}
+  .btn.primary:hover{opacity:0.9;}
+  .btn.danger{color:#c0392b;border-color:rgba(192,57,43,0.3);}
+  .btn.danger:hover{background:rgba(192,57,43,0.07);}
+  .btn.proj{border-color:var(--amber);color:var(--amber);}
+  .btn.proj.active{background:var(--surface);border-color:var(--amber);color:var(--amber);}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:20px;}
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px;}
+  .metric{background:var(--surface2);border-radius:var(--radius-sm);padding:12px 14px;}
+  .metric label{font-size:11px;color:var(--text2);display:block;margin-bottom:4px;}
+  .metric .val{font-size:20px;font-weight:500;}
+  .card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;}
+  .card h2{font-size:13px;font-weight:500;color:var(--text2);margin-bottom:14px;}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;font-size:12px;color:var(--text2);}
+  .legend span{display:flex;align-items:center;gap:5px;}
+  .legend i{width:10px;height:10px;border-radius:2px;display:inline-block;flex-shrink:0;}
+  .chart-wrap{position:relative;width:100%;height:240px;}
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  thead tr{border-bottom:0.5px solid var(--border2);}
+  th{padding:8px 8px;font-weight:500;color:var(--text2);text-align:right;white-space:nowrap;}
+  th:first-child{text-align:left;}
+  td{padding:6px 8px;border-bottom:0.5px solid var(--border);text-align:right;}
+  td:first-child{text-align:left;}
+  tfoot td{font-weight:500;border-top:0.5px solid var(--border2);border-bottom:none;background:var(--surface2);}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:100;align-items:center;justify-content:center;}
+  .overlay.open{display:flex;}
+  .modal{background:var(--surface);border-radius:var(--radius);padding:24px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;}
+  .modal h2{font-size:16px;font-weight:500;margin-bottom:18px;}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .form-group{display:flex;flex-direction:column;gap:4px;}
+  .form-group.full{grid-column:1/-1;}
+  label.field{font-size:12px;color:var(--text2);font-weight:500;}
+  input,select{padding:7px 10px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:13px;width:100%;}
+  input:focus,select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(55,138,221,0.15);}
+  .form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;}
+  .row-actions button{border:none;background:transparent;cursor:pointer;color:var(--text3);font-size:13px;padding:2px 5px;border-radius:3px;}
+  .row-actions button:hover{background:var(--surface2);color:var(--text);}
+  .proj-badge{display:inline-block;padding:1px 7px;border-radius:20px;font-size:11px;background:rgba(186,117,23,0.12);color:var(--amber);margin-left:6px;}
+  .note{font-size:12px;color:var(--text2);background:var(--surface2);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;border-left:3px solid var(--amber);}
 </style>
 </head>
 <body>
-
 <header>
   <div>
     <h1>Security Spend Dashboard</h1>
     <p>Securitas · Protos · End2End</p>
   </div>
-  <div style="display:flex;gap:8px;">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
     <button class="btn" onclick="openImport()">Import JSON</button>
     <button class="btn" onclick="exportData()">Export</button>
     <button class="btn primary" onclick="openAddForm()">+ Add entry</button>
@@ -97,11 +82,9 @@
 
 <div class="main">
   <div class="toolbar" id="yearTabs"></div>
-
+  <div id="projNote"></div>
   <div class="metrics" id="metricsRow"></div>
-
   <div class="tabs" id="viewTabs"></div>
-
   <div id="viewContent"></div>
 </div>
 
@@ -112,17 +95,14 @@
     <div class="form-grid">
       <div class="form-group">
         <label class="field">Year</label>
-        <select id="fYear">
-          <option>2024</option><option selected>2025</option><option>2026</option>
-        </select>
+        <select id="fYear"><option>2024</option><option selected>2025</option><option>2026</option><option>2027</option></select>
       </div>
       <div class="form-group">
         <label class="field">Month</label>
         <select id="fMonth">
-          <option>January</option><option>February</option><option>March</option>
-          <option>April</option><option>May</option><option>June</option>
-          <option>July</option><option>August</option><option>September</option>
-          <option>October</option><option>November</option><option>December</option>
+          <option>January</option><option>February</option><option>March</option><option>April</option>
+          <option>May</option><option>June</option><option>July</option><option>August</option>
+          <option>September</option><option>October</option><option>November</option><option>December</option>
         </select>
       </div>
       <div class="form-group">
@@ -149,6 +129,14 @@
         <label class="field">End2End spend ($)</label>
         <input type="number" id="fEnd2End" step="0.01" placeholder="e.g. 3072.00"/>
       </div>
+      <div class="form-group full">
+        <label class="field">Securitas projection ($) <span style="color:var(--amber);font-size:11px;">2026 projections tab only</span></label>
+        <input type="number" id="fProjection" step="0.01" placeholder="e.g. 42695.47"/>
+      </div>
+      <div class="form-group full" style="flex-direction:row;align-items:center;gap:8px;">
+        <input type="checkbox" id="fIsProj" style="width:auto;"/>
+        <label class="field" for="fIsProj" style="cursor:pointer;">Mark as projection entry</label>
+      </div>
     </div>
     <div class="form-actions">
       <button class="btn" onclick="closeModal()">Cancel</button>
@@ -162,10 +150,8 @@
 <div class="overlay" id="importOverlay">
   <div class="modal">
     <h2>Import data (JSON)</h2>
-    <p style="font-size:12px;color:var(--text2);margin-bottom:10px;">Paste exported JSON to restore or merge data. This will overwrite existing entries for the same year/month.</p>
-    <div class="import-area">
-      <textarea id="importText" placeholder='[{"year":2025,"month":"January","incRate":2.25,...}]'></textarea>
-    </div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:10px;">Paste exported JSON to restore or merge data.</p>
+    <textarea id="importText" style="width:100%;height:120px;font-family:monospace;font-size:11px;padding:8px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);resize:vertical;" placeholder='[{"year":2025,"month":"January",...}]'></textarea>
     <div class="form-actions">
       <button class="btn" onclick="closeImport()">Cancel</button>
       <button class="btn primary" onclick="doImport()">Import</button>
@@ -174,347 +160,300 @@
 </div>
 
 <script>
-const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-const SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const COLORS = { securitas:"#378ADD", protos:"#1D9E75", end2end:"#D85A30", total:"#7F77DD" };
+const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const SHORT=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const C={sec:"#378ADD",pro:"#1D9E75",e2e:"#D85A30",tot:"#7F77DD",proj:"#BA7517"};
 
-const SEED = [
-  {year:2025,month:"January",incRate:2.25,incidents:176,homes:7822,securitas:107872.56,protos:2158.76,end2end:3072.00},
-  {year:2025,month:"February",incRate:2.49,incidents:208,homes:8353,securitas:138294.71,protos:3542.65,end2end:4991.25},
-  {year:2025,month:"March",incRate:2.38,incidents:201,homes:8445,securitas:144353.20,protos:3598.40,end2end:3110.00},
-  {year:2025,month:"April",incRate:2.45,incidents:189,homes:7714,securitas:116339.57,protos:4416.59,end2end:2189.00},
-  {year:2025,month:"May",incRate:2.42,incidents:157,homes:6488,securitas:108461.26,protos:2666.92,end2end:1161.00},
-  {year:2025,month:"June",incRate:3.31,incidents:187,homes:5650,securitas:112760.98,protos:4448.83,end2end:2341.00},
-  {year:2025,month:"July",incRate:3.83,incidents:182,homes:4752,securitas:108820.23,protos:4473.82,end2end:6160.88},
-  {year:2025,month:"August",incRate:4.40,incidents:188,homes:1944,securitas:90436.73,protos:5596.92,end2end:4537.92},
-  {year:2025,month:"September",incRate:3.88,incidents:150,homes:1780,securitas:76404.73,protos:3623.14,end2end:1904.75},
-  {year:2025,month:"October",incRate:3.20,incidents:112,homes:1586,securitas:70881.94,protos:4646.27,end2end:6715.10},
-  {year:2025,month:"November",incRate:3.16,incidents:107,homes:1374,securitas:60852.06,protos:250,end2end:2363.21},
-  {year:2025,month:"December",incRate:2.44,incidents:85,homes:1418,securitas:64929.61,protos:0,end2end:2718.50},
-  {year:2026,month:"January",incRate:3.06,incidents:107,homes:1455,securitas:51998.98,protos:0,end2end:0},
-  {year:2026,month:"February",incRate:2.81,incidents:106,homes:1596,securitas:53311.16,protos:0,end2end:0},
+// All data seeded from Google Sheets
+const SEED=[
+  // 2024 - Securitas only
+  {year:2024,month:"January",incRate:0,incidents:0,homes:0,securitas:48967.16,protos:0,end2end:0,isProj:false},
+  {year:2024,month:"February",incRate:0,incidents:0,homes:0,securitas:55704.40,protos:0,end2end:0,isProj:false},
+  {year:2024,month:"March",incRate:0,incidents:0,homes:0,securitas:55157.12,protos:0,end2end:0,isProj:false},
+  {year:2024,month:"April",incRate:0,incidents:0,homes:0,securitas:53715.62,protos:0,end2end:0,isProj:false},
+  {year:2024,month:"May",incRate:0,incidents:0,homes:0,securitas:66039.93,protos:0,end2end:0,isProj:false},
+  {year:2024,month:"June",incRate:0,incidents:0,homes:0,securitas:120591.26,protos:0,end2end:0,isProj:false},
+  {year:2024,month:"July",incRate:0,incidents:0,homes:0,securitas:168878.22,protos:0,end2end:0,isProj:false},
+  {year:2024,month:"August",incRate:0,incidents:0,homes:0,securitas:149927.41,protos:0,end2end:0,isProj:false},
+  {year:2024,month:"September",incRate:0,incidents:0,homes:0,securitas:130467.05,protos:0,end2end:0,isProj:false},
+  {year:2024,month:"October",incRate:0,incidents:0,homes:0,securitas:98989.15,protos:0,end2end:0,isProj:false},
+  {year:2024,month:"November",incRate:0,incidents:0,homes:0,securitas:102469.69,protos:0,end2end:0,isProj:false},
+  {year:2024,month:"December",incRate:0,incidents:0,homes:0,securitas:97312.61,protos:0,end2end:0,isProj:false},
+  // 2025 - All vendors
+  {year:2025,month:"January",incRate:2.25,incidents:176,homes:7822,securitas:107872.56,protos:2158.76,end2end:3072.00,isProj:false},
+  {year:2025,month:"February",incRate:2.49,incidents:208,homes:8353,securitas:138294.71,protos:3542.65,end2end:4991.25,isProj:false},
+  {year:2025,month:"March",incRate:2.38,incidents:201,homes:8445,securitas:144353.20,protos:3598.40,end2end:3110.00,isProj:false},
+  {year:2025,month:"April",incRate:2.45,incidents:189,homes:7714,securitas:116339.57,protos:4416.59,end2end:2189.00,isProj:false},
+  {year:2025,month:"May",incRate:2.42,incidents:157,homes:6488,securitas:108461.26,protos:2666.92,end2end:1161.00,isProj:false},
+  {year:2025,month:"June",incRate:3.31,incidents:187,homes:5650,securitas:112760.98,protos:4448.83,end2end:2341.00,isProj:false},
+  {year:2025,month:"July",incRate:3.83,incidents:182,homes:4752,securitas:108820.23,protos:4473.82,end2end:6160.88,isProj:false},
+  {year:2025,month:"August",incRate:4.40,incidents:188,homes:1944,securitas:90436.73,protos:5596.92,end2end:4537.92,isProj:false},
+  {year:2025,month:"September",incRate:3.88,incidents:150,homes:1780,securitas:76404.73,protos:3623.14,end2end:1904.75,isProj:false},
+  {year:2025,month:"October",incRate:3.20,incidents:112,homes:1586,securitas:70881.94,protos:4646.27,end2end:6715.10,isProj:false},
+  {year:2025,month:"November",incRate:3.16,incidents:107,homes:1374,securitas:60852.06,protos:250,end2end:2363.21,isProj:false},
+  {year:2025,month:"December",incRate:2.44,incidents:85,homes:1418,securitas:64929.61,protos:0,end2end:2718.50,isProj:false},
+  // 2026 actual
+  {year:2026,month:"January",incRate:3.06,incidents:107,homes:1455,securitas:51998.98,protos:0,end2end:0,isProj:false},
+  {year:2026,month:"February",incRate:2.81,incidents:106,homes:1596,securitas:53311.16,protos:2078.15,end2end:385.25,isProj:false},
+  // 2026 projections (separate isProj flag)
+  {year:2026,month:"January",incRate:2.25,incidents:176,homes:3096,securitas:107872.56,protos:0,end2end:0,projection:42695.47,isProj:true},
+  {year:2026,month:"February",incRate:2.49,incidents:208,homes:3489,securitas:138294.71,protos:0,end2end:0,projection:57762.04,isProj:true},
+  {year:2026,month:"March",incRate:2.38,incidents:201,homes:3958,securitas:144353.20,protos:0,end2end:0,projection:67652.38,isProj:true},
+  {year:2026,month:"April",incRate:2.45,incidents:189,homes:4576,securitas:116339.57,protos:0,end2end:0,projection:69010.91,isProj:true},
+  {year:2026,month:"May",incRate:2.42,incidents:157,homes:5011,securitas:108461.26,protos:0,end2end:0,projection:83775.06,isProj:true},
+  {year:2026,month:"June",incRate:3.31,incidents:187,homes:5490,securitas:112760.98,protos:0,end2end:0,projection:109576.54,isProj:true},
+  {year:2026,month:"July",incRate:3.83,incidents:182,homes:6134,securitas:108820.23,protos:0,end2end:0,projection:140469.10,isProj:true},
+  {year:2026,month:"August",incRate:4.40,incidents:188,homes:6661,securitas:90436.73,protos:0,end2end:0,projection:309876.06,isProj:true},
+  {year:2026,month:"September",incRate:3.88,incidents:150,homes:7256,securitas:76404.73,protos:0,end2end:0,projection:311456.58,isProj:true},
+  {year:2026,month:"October",incRate:3.20,incidents:112,homes:7922,securitas:70881.94,protos:0,end2end:0,projection:354052.16,isProj:true},
+  {year:2026,month:"November",incRate:3.16,incidents:107,homes:9121,securitas:60852.06,protos:0,end2end:0,projection:403953.16,isProj:true},
+  {year:2026,month:"December",incRate:2.44,incidents:85,homes:10550,securitas:64929.61,protos:0,end2end:0,projection:483079.96,isProj:true},
 ];
 
-let data = [];
-let activeYear = 2025;
-let activeView = "overview";
-let editingKey = null;
-let charts = {};
+let data=[], activeYear=2025, activeMode="actual", activeView="overview", editingKey=null, charts={};
 
-function loadData() {
-  const stored = localStorage.getItem("secSpendData");
-  if (stored) { try { data = JSON.parse(stored); } catch(e) { data = [...SEED]; } }
-  else { data = [...SEED]; saveData(); }
+function loadData(){
+  const s=localStorage.getItem("secSpendData2");
+  if(s){try{data=JSON.parse(s);}catch(e){data=[...SEED];}}
+  else{data=[...SEED];saveData();}
+}
+function saveData(){localStorage.setItem("secSpendData2",JSON.stringify(data));}
+function getKey(year,month,isProj){return `${year}_${month}_${isProj?'proj':'actual'}`;}
+
+function getYears(){return[...new Set(data.map(d=>d.year))].sort();}
+
+function getRows(year,mode){
+  const isProj=mode==="proj";
+  return MONTHS.map(m=>data.find(d=>d.year===year&&d.month===m&&!!d.isProj===isProj)||null);
 }
 
-function saveData() { localStorage.setItem("secSpendData", JSON.stringify(data)); }
+function fmt(n){return"$"+Math.round(n||0).toLocaleString();}
+function fmtK(n){return"$"+((n||0)/1000).toFixed(1)+"k";}
 
-function getKey(year, month) { return `${year}_${month}`; }
+function renderAll(){renderYearTabs();renderProjNote();renderMetrics();renderViewTabs();renderView();}
 
-function getYears() {
-  const s = new Set(data.map(d => d.year));
-  return [...s].sort();
+function renderYearTabs(){
+  const years=getYears();
+  if(!years.includes(activeYear)){activeYear=years[years.length-1]||2025;}
+  const hasProj=data.some(d=>d.year===activeYear&&d.isProj);
+  let html=years.map(y=>`<button class="btn${y===activeYear?' active':''}" onclick="setYear(${y})">${y}</button>`).join("");
+  if(hasProj){
+    html+=`<button class="btn proj${activeMode==='proj'?' active':''}" onclick="setMode('proj')">2026 Projections</button>`;
+  }
+  if(activeMode==="proj"&&!hasProj)activeMode="actual";
+  html+=`<button class="btn" onclick="addYear()">+ Year</button>`;
+  document.getElementById("yearTabs").innerHTML=html;
 }
 
-function getYearData(year) {
-  return MONTHS.map(m => data.find(d => d.year === year && d.month === m) || null);
+function renderProjNote(){
+  const el=document.getElementById("projNote");
+  if(activeMode==="proj"){
+    el.innerHTML=`<div class="note">Showing <strong>2026 Securitas projections</strong> based on 2025 spend per home × forecasted inventory. Actual spend shown separately under 2026 Actual.</div>`;
+  } else if(activeYear===2024){
+    el.innerHTML=`<div class="note">2024 data contains Securitas spend only. Protos and End2End tracking began in 2025.</div>`;
+  } else { el.innerHTML=""; }
 }
 
-function fmt(n) { return "$" + Math.round(n || 0).toLocaleString(); }
-function fmtK(n) { return "$" + ((n||0)/1000).toFixed(1) + "k"; }
+function renderMetrics(){
+  const rows=getRows(activeYear,activeMode).filter(Boolean);
+  const totSec=rows.reduce((a,r)=>a+(r.securitas||0),0);
+  const totPro=rows.reduce((a,r)=>a+(r.protos||0),0);
+  const totE2e=rows.reduce((a,r)=>a+(r.end2end||0),0);
+  const totProj=rows.reduce((a,r)=>a+(r.projection||0),0);
+  const tot=totSec+totPro+totE2e;
+  const avgIR=rows.length?(rows.reduce((a,r)=>a+(r.incRate||0),0)/rows.length).toFixed(2):0;
+  const totInc=rows.reduce((a,r)=>a+(r.incidents||0),0);
 
-function renderAll() {
-  renderYearTabs();
-  renderMetrics();
-  renderViewTabs();
-  renderView();
+  let cards=[["Total spend",fmtK(tot),C.tot],["Securitas",fmtK(totSec),C.sec]];
+  if(activeYear>=2025&&activeMode==="actual"){
+    cards.push(["Protos",fmtK(totPro),C.pro],["End2End",fmtK(totE2e),C.e2e]);
+  }
+  if(activeMode==="proj"&&totProj>0)cards.push(["Projected total",fmtK(totProj),C.proj]);
+  cards.push(["Avg inc. rate",avgIR+"%","var(--text)"],["Total incidents",totInc,"var(--text)"]);
+  document.getElementById("metricsRow").innerHTML=cards.map(([l,v,c])=>`<div class="metric"><label>${l}</label><div class="val" style="color:${c}">${v}</div></div>`).join("");
 }
 
-function renderYearTabs() {
-  const years = getYears();
-  if (!years.includes(activeYear)) activeYear = years[years.length - 1] || 2025;
-  document.getElementById("yearTabs").innerHTML = years.map(y =>
-    `<button class="btn${y===activeYear?' active':''}" onclick="setYear(${y})">${y}</button>`
-  ).join("") + `<button class="btn" onclick="addYear()">+ Year</button>`;
+function renderViewTabs(){
+  const views=activeMode==="proj"?["projections","table"]:["overview","spend mix","per home","table"];
+  if(!views.includes(activeView))activeView=views[0];
+  document.getElementById("viewTabs").innerHTML=views.map(v=>`<button class="btn${v===activeView?' active':''}" onclick="setView('${v}')">${v.charAt(0).toUpperCase()+v.slice(1)}</button>`).join("");
 }
 
-function renderViewTabs() {
-  const views = ["overview","spend mix","per home","table"];
-  document.getElementById("viewTabs").innerHTML = views.map(v =>
-    `<button class="btn${v===activeView?' active':''}" onclick="setView('${v}')">${v.charAt(0).toUpperCase()+v.slice(1)}</button>`
-  ).join("");
-}
+function destroyCharts(){Object.values(charts).forEach(c=>{try{c.destroy();}catch(e){}});charts={};}
 
-function renderMetrics() {
-  const rows = getYearData(activeYear).filter(Boolean);
-  const totSec = rows.reduce((a,r)=>a+(r.securitas||0),0);
-  const totPro = rows.reduce((a,r)=>a+(r.protos||0),0);
-  const totE2e = rows.reduce((a,r)=>a+(r.end2end||0),0);
-  const tot = totSec + totPro + totE2e;
-  const avgIR = rows.length ? (rows.reduce((a,r)=>a+(r.incRate||0),0)/rows.length).toFixed(2) : 0;
-  const totInc = rows.reduce((a,r)=>a+(r.incidents||0),0);
-  document.getElementById("metricsRow").innerHTML = [
-    ["Total spend", fmtK(tot), COLORS.total],
-    ["Securitas", fmtK(totSec), COLORS.securitas],
-    ["Protos", fmtK(totPro), COLORS.protos],
-    ["End2End", fmtK(totE2e), COLORS.end2end],
-    ["Avg incident rate", avgIR+"%", "var(--text)"],
-    ["Total incidents", totInc, "var(--text)"],
-  ].map(([l,v,c]) => `<div class="metric"><label>${l}</label><div class="val" style="color:${c}">${v}</div></div>`).join("");
-}
-
-function destroyCharts() {
-  Object.values(charts).forEach(c => { try { c.destroy(); } catch(e){} });
-  charts = {};
-}
-
-function renderView() {
+function renderView(){
   destroyCharts();
-  const el = document.getElementById("viewContent");
-  const rows = getYearData(activeYear);
-  const active = rows.map((r,i)=>({r,i})).filter(({r})=>r);
-  const labels = active.map(({i}) => SHORT[i]);
+  const el=document.getElementById("viewContent");
+  const rows=getRows(activeYear,activeMode);
+  const active=rows.map((r,i)=>({r,i})).filter(({r})=>r);
+  const labels=active.map(({i})=>SHORT[i]);
+  const is2024=activeYear===2024;
+  const isProj=activeMode==="proj";
 
-  if (activeView === "overview") {
-    el.innerHTML = `
-      <div class="card">
-        <h2>Monthly spend by vendor</h2>
-        <div class="legend">
-          <span><i style="background:${COLORS.securitas}"></i>Securitas</span>
-          <span><i style="background:${COLORS.protos}"></i>Protos</span>
-          <span><i style="background:${COLORS.end2end}"></i>End2End</span>
-        </div>
-        <div class="chart-wrap"><canvas id="barChart"></canvas></div>
-      </div>
-      <div class="card">
-        <h2>Incident rate trend (%)</h2>
-        <div class="chart-wrap" style="height:180px"><canvas id="irChart"></canvas></div>
+  if(activeView==="overview"){
+    const datasets=is2024?[{label:"Securitas",data:active.map(({r})=>r.securitas||0),backgroundColor:C.sec}]:[
+      {label:"Securitas",data:active.map(({r})=>r.securitas||0),backgroundColor:C.sec},
+      {label:"Protos",data:active.map(({r})=>r.protos||0),backgroundColor:C.pro},
+      {label:"End2End",data:active.map(({r})=>r.end2end||0),backgroundColor:C.e2e},
+    ];
+    const legendHtml=is2024
+      ?`<span><i style="background:${C.sec}"></i>Securitas</span>`
+      :`<span><i style="background:${C.sec}"></i>Securitas</span><span><i style="background:${C.pro}"></i>Protos</span><span><i style="background:${C.e2e}"></i>End2End</span>`;
+    el.innerHTML=`
+      <div class="card"><h2>Monthly spend by vendor</h2><div class="legend">${legendHtml}</div><div class="chart-wrap"><canvas id="barChart"></canvas></div></div>
+      <div class="card"><h2>Incident rate trend (%)</h2><div class="chart-wrap" style="height:180px"><canvas id="irChart"></canvas></div></div>`;
+    setTimeout(()=>{
+      charts.bar=new Chart(document.getElementById("barChart"),{type:"bar",data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{autoSkip:false,maxRotation:45}}}}});
+      if(active.some(({r})=>r.incRate>0))charts.ir=new Chart(document.getElementById("irChart"),{type:"line",data:{labels,datasets:[{label:"Inc. Rate",data:active.map(({r})=>r.incRate||0),borderColor:C.e2e,backgroundColor:"transparent",tension:0.3,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+"%"}}}}});
+      else document.getElementById("irChart").parentElement.innerHTML=`<p style="color:var(--text3);font-size:13px;padding:20px 0">No incident rate data for 2024.</p>`;
+    },0);
+
+  } else if(activeView==="spend mix"){
+    const totSec=active.reduce((a,{r})=>a+(r.securitas||0),0);
+    const totPro=active.reduce((a,{r})=>a+(r.protos||0),0);
+    const totE2e=active.reduce((a,{r})=>a+(r.end2end||0),0);
+    const tot=totSec+totPro+totE2e||1;
+    const bars=is2024||activeYear===2024
+      ?[[`Securitas`,totSec,C.sec]]
+      :[[`Securitas`,totSec,C.sec],[`Protos`,totPro,C.pro],[`End2End`,totE2e,C.e2e]];
+    el.innerHTML=`
+      <div class="card"><h2>Vendor spend breakdown</h2>${bars.map(([l,v,c])=>{const p=Math.round(v/tot*100);return`<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px"><span>${l}</span><span style="color:var(--text2)">${fmt(v)} <span style="color:${c};font-weight:500">(${p}%)</span></span></div><div style="height:8px;border-radius:4px;background:var(--surface2);overflow:hidden"><div style="height:100%;width:${p}%;background:${c};border-radius:4px"></div></div></div>`;}).join("")}</div>
+      <div class="card"><h2>Total monthly spend</h2><div class="chart-wrap"><canvas id="totChart"></canvas></div></div>`;
+    setTimeout(()=>{charts.tot=new Chart(document.getElementById("totChart"),{type:"line",data:{labels,datasets:[{label:"Total",data:active.map(({r})=>(r.securitas||0)+(r.protos||0)+(r.end2end||0)),borderColor:C.tot,backgroundColor:"transparent",tension:0.3,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>"$"+(v/1000).toFixed(0)+"k"}}}}});},0);
+
+  } else if(activeView==="per home"){
+    const sph=active.map(({r})=>r.homes>0?parseFloat((r.securitas/r.homes).toFixed(2)):0);
+    el.innerHTML=`
+      <div class="card"><h2>Securitas spend per home</h2><div class="chart-wrap"><canvas id="sphChart"></canvas></div></div>
+      <div class="card" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;padding:12px">
+        ${active.map(({r,i},idx)=>`<div style="background:var(--surface2);border-radius:6px;padding:10px 12px"><div style="font-size:11px;color:var(--text2)">${SHORT[i]}</div><div style="font-size:15px;font-weight:500">$${sph[idx]}</div><div style="font-size:11px;color:var(--text3)">${(r.homes||0).toLocaleString()} homes</div></div>`).join("")}
       </div>`;
-    setTimeout(() => {
-      charts.bar = new Chart(document.getElementById("barChart"), {
-        type: "bar",
-        data: {
-          labels,
-          datasets: [
-            { label:"Securitas", data: active.map(({r})=>r.securitas||0), backgroundColor: COLORS.securitas },
-            { label:"Protos", data: active.map(({r})=>r.protos||0), backgroundColor: COLORS.protos },
-            { label:"End2End", data: active.map(({r})=>r.end2end||0), backgroundColor: COLORS.end2end },
-          ]
-        },
-        options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} }, scales:{x:{ticks:{autoSkip:false,maxRotation:45}}} }
-      });
-      charts.ir = new Chart(document.getElementById("irChart"), {
-        type: "line",
-        data: { labels, datasets: [{ label:"Inc. Rate %", data: active.map(({r})=>r.incRate||0), borderColor:COLORS.end2end, backgroundColor:"transparent", tension:0.3, pointRadius:3 }] },
-        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{ticks:{callback:v=>v+"%"}}} }
-      });
-    }, 0);
+    setTimeout(()=>{charts.sph=new Chart(document.getElementById("sphChart"),{type:"line",data:{labels,datasets:[{label:"$/home",data:sph,borderColor:C.sec,backgroundColor:"transparent",tension:0.3,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>"$"+v.toFixed(2)}}}}});},0);
 
-  } else if (activeView === "spend mix") {
-    const totSec = active.reduce((a,{r})=>a+(r.securitas||0),0);
-    const totPro = active.reduce((a,{r})=>a+(r.protos||0),0);
-    const totE2e = active.reduce((a,{r})=>a+(r.end2end||0),0);
-    const tot = totSec + totPro + totE2e || 1;
-    el.innerHTML = `
-      <div class="card">
-        <h2>Vendor spend breakdown</h2>
-        ${[["Securitas",totSec,COLORS.securitas],["Protos",totPro,COLORS.protos],["End2End",totE2e,COLORS.end2end]].map(([l,v,c])=>{
-          const pct = Math.round(v/tot*100);
-          return `<div style="margin-bottom:14px">
-            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px">
-              <span>${l}</span>
-              <span style="color:var(--text2)">${fmt(v)} <span style="color:${c};font-weight:500">(${pct}%)</span></span>
-            </div>
-            <div style="height:8px;border-radius:4px;background:var(--surface2);overflow:hidden">
-              <div style="height:100%;width:${pct}%;background:${c};border-radius:4px"></div>
-            </div>
-          </div>`;
-        }).join("")}
-      </div>
-      <div class="card">
-        <h2>Total monthly spend</h2>
-        <div class="chart-wrap"><canvas id="totalChart"></canvas></div>
-      </div>`;
-    setTimeout(() => {
-      charts.total = new Chart(document.getElementById("totalChart"), {
-        type: "line",
-        data: { labels, datasets: [{ label:"Total", data: active.map(({r})=>(r.securitas||0)+(r.protos||0)+(r.end2end||0)), borderColor:COLORS.purple, backgroundColor:"transparent", tension:0.3, pointRadius:3 }] },
-        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{ticks:{callback:v=>"$"+(v/1000).toFixed(0)+"k"}}} }
-      });
-    }, 0);
-
-  } else if (activeView === "per home") {
-    el.innerHTML = `
-      <div class="card">
-        <h2>Securitas spend per home ($)</h2>
-        <div class="chart-wrap"><canvas id="sphChart"></canvas></div>
-      </div>
-      <div class="card" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;padding:14px">
-        ${active.map(({r,i})=>{
-          const sph = r.homes > 0 ? (r.securitas/r.homes).toFixed(2) : "-";
-          return `<div style="background:var(--surface2);border-radius:6px;padding:10px 12px">
-            <div style="font-size:11px;color:var(--text2)">${SHORT[i]}</div>
-            <div style="font-size:16px;font-weight:500">$${sph}</div>
-            <div style="font-size:11px;color:var(--text3)">${(r.homes||0).toLocaleString()} homes</div>
-          </div>`;
-        }).join("")}
-      </div>`;
-    setTimeout(() => {
-      charts.sph = new Chart(document.getElementById("sphChart"), {
-        type: "line",
-        data: { labels, datasets: [{ label:"$/home", data: active.map(({r})=>r.homes>0?parseFloat((r.securitas/r.homes).toFixed(2)):0), borderColor:COLORS.securitas, backgroundColor:"transparent", tension:0.3, pointRadius:3 }] },
-        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{ticks:{callback:v=>"$"+v.toFixed(2)}}} }
-      });
-    }, 0);
-
-  } else if (activeView === "table") {
-    el.innerHTML = `
-      <div class="card" style="padding:0;overflow:hidden">
-        <div style="overflow-x:auto">
+  } else if(activeView==="projections"){
+    el.innerHTML=`
+      <div class="card"><h2>Projected Securitas spend 2026 vs 2025 actual</h2><div class="chart-wrap" style="height:260px"><canvas id="projChart"></canvas></div></div>
+      <div class="card" style="overflow-x:auto;padding:0">
         <table>
-          <thead><tr>
-            <th style="text-align:left">Month</th>
-            <th>Inc. rate</th><th>Incidents</th><th>Homes</th>
-            <th style="color:${COLORS.securitas}">Securitas</th>
-            <th style="color:${COLORS.protos}">Protos</th>
-            <th style="color:${COLORS.end2end}">End2End</th>
-            <th>Total</th><th></th>
-          </tr></thead>
-          <tbody>
-            ${active.map(({r,i})=>{
-              const tot = (r.securitas||0)+(r.protos||0)+(r.end2end||0);
-              const key = getKey(r.year, r.month);
-              return `<tr>
-                <td>${MONTHS[i]}</td>
-                <td>${r.incRate||0}%</td>
-                <td>${r.incidents||0}</td>
-                <td>${(r.homes||0).toLocaleString()}</td>
-                <td style="color:${COLORS.securitas}">${fmt(r.securitas)}</td>
-                <td style="color:${COLORS.protos}">${fmt(r.protos)}</td>
-                <td style="color:${COLORS.end2end}">${fmt(r.end2end)}</td>
-                <td style="font-weight:500">${fmt(tot)}</td>
-                <td><div class="row-actions">
-                  <button onclick="openEditForm('${key}')" title="Edit">✎</button>
-                </div></td>
-              </tr>`;
-            }).join("")}
-          </tbody>
-          <tfoot><tr>
-            <td colspan="4">Total</td>
-            <td style="color:${COLORS.securitas}">${fmt(active.reduce((a,{r})=>a+(r.securitas||0),0))}</td>
-            <td style="color:${COLORS.protos}">${fmt(active.reduce((a,{r})=>a+(r.protos||0),0))}</td>
-            <td style="color:${COLORS.end2end}">${fmt(active.reduce((a,{r})=>a+(r.end2end||0),0))}</td>
-            <td style="font-weight:500;color:${COLORS.total}">${fmt(active.reduce((a,{r})=>a+(r.securitas||0)+(r.protos||0)+(r.end2end||0),0))}</td>
-            <td></td>
-          </tr></tfoot>
+          <thead><tr><th style="text-align:left">Month</th><th>Homes (proj)</th><th>Inc. rate</th><th>2025 spend/home</th><th style="color:${C.proj}">2026 projection</th></tr></thead>
+          <tbody>${active.map(({r,i})=>`<tr>
+            <td>${MONTHS[i]}</td><td>${(r.homes||0).toLocaleString()}</td><td>${r.incRate||0}%</td>
+            <td>$${r.homes>0?(r.securitas/r.homes).toFixed(2):"-"}</td>
+            <td style="color:${C.proj};font-weight:500">${fmt(r.projection)}</td>
+          </tr>`).join("")}</tbody>
+          <tfoot><tr><td colspan="4">Total projected</td><td style="color:${C.proj}">${fmt(active.reduce((a,{r})=>a+(r.projection||0),0))}</td></tr></tfoot>
         </table>
-        </div>
       </div>`;
+    const actual2026=MONTHS.map(m=>data.find(d=>d.year===2026&&d.month===m&&!d.isProj));
+    setTimeout(()=>{
+      charts.proj=new Chart(document.getElementById("projChart"),{type:"bar",
+        data:{labels,datasets:[
+          {label:"2026 Projection",data:active.map(({r})=>r.projection||0),backgroundColor:C.proj+"99"},
+          {label:"2026 Actual",data:active.map(({i})=>actual2026[i]?actual2026[i].securitas:null),backgroundColor:C.sec,type:"bar"},
+        ]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true}},scales:{x:{ticks:{autoSkip:false,maxRotation:45}},y:{ticks:{callback:v=>"$"+(v/1000).toFixed(0)+"k"}}}}
+      });
+    },0);
+
+  } else if(activeView==="table"){
+    const cols=isProj
+      ?`<th style="text-align:left">Month</th><th>Homes</th><th>Inc. rate</th><th>Incidents</th><th style="color:${C.sec}">2025 sec/home basis</th><th style="color:${C.proj}">2026 projection</th><th></th>`
+      :`<th style="text-align:left">Month</th><th>Inc. rate</th><th>Incidents</th><th>Homes</th><th style="color:${C.sec}">Securitas</th>${!is2024?`<th style="color:${C.pro}">Protos</th><th style="color:${C.e2e}">End2End</th>`:""}<th>Total</th><th></th>`;
+    const bodyRows=active.map(({r,i})=>{
+      const key=getKey(r.year,r.month,r.isProj);
+      if(isProj)return`<tr><td>${MONTHS[i]}</td><td>${(r.homes||0).toLocaleString()}</td><td>${r.incRate||0}%</td><td>${r.incidents||0}</td><td style="color:${C.sec}">$${r.homes>0?(r.securitas/r.homes).toFixed(2):"-"}</td><td style="color:${C.proj};font-weight:500">${fmt(r.projection)}</td><td><div class="row-actions"><button onclick="openEditForm('${key}')">✎</button></div></td></tr>`;
+      const tot=(r.securitas||0)+(r.protos||0)+(r.end2end||0);
+      return`<tr><td>${MONTHS[i]}</td><td>${r.incRate||0}%</td><td>${r.incidents||0}</td><td>${(r.homes||0).toLocaleString()}</td><td style="color:${C.sec}">${fmt(r.securitas)}</td>${!is2024?`<td style="color:${C.pro}">${fmt(r.protos)}</td><td style="color:${C.e2e}">${fmt(r.end2end)}</td>`:""}<td style="font-weight:500">${fmt(tot)}</td><td><div class="row-actions"><button onclick="openEditForm('${key}')">✎</button></div></td></tr>`;
+    }).join("");
+    const footCols=isProj
+      ?`<td colspan="5">Total</td><td style="color:${C.proj}">${fmt(active.reduce((a,{r})=>a+(r.projection||0),0))}</td><td></td>`
+      :`<td colspan="4">Total</td><td style="color:${C.sec}">${fmt(active.reduce((a,{r})=>a+(r.securitas||0),0))}</td>${!is2024?`<td style="color:${C.pro}">${fmt(active.reduce((a,{r})=>a+(r.protos||0),0))}</td><td style="color:${C.e2e}">${fmt(active.reduce((a,{r})=>a+(r.end2end||0),0))}</td>`:""}<td style="color:${C.tot}">${fmt(active.reduce((a,{r})=>a+(r.securitas||0)+(r.protos||0)+(r.end2end||0),0))}</td><td></td>`;
+    el.innerHTML=`<div class="card" style="padding:0;overflow:hidden"><div style="overflow-x:auto"><table><thead><tr>${cols}</tr></thead><tbody>${bodyRows}</tbody><tfoot><tr>${footCols}</tr></tfoot></table></div></div>`;
   }
 }
 
-function setYear(y) { activeYear = y; renderAll(); }
-function setView(v) { activeView = v; renderView(); renderViewTabs(); }
+function setYear(y){activeYear=y;activeMode="actual";renderAll();}
+function setMode(m){activeMode=m;renderAll();}
+function setView(v){activeView=v;renderView();renderViewTabs();}
+function addYear(){const y=parseInt(prompt("Enter year (e.g. 2027):"));if(!y||isNaN(y))return;activeYear=y;activeMode="actual";renderAll();}
 
-function addYear() {
-  const y = parseInt(prompt("Enter year (e.g. 2027):"));
-  if (!y || isNaN(y)) return;
-  activeYear = y;
-  renderAll();
-}
-
-function openAddForm() {
-  editingKey = null;
-  document.getElementById("formTitle").textContent = "Add entry";
-  document.getElementById("deleteBtn").style.display = "none";
-  document.getElementById("fYear").value = activeYear;
-  ["fMonth","fIncRate","fIncidents","fHomes","fSecuritas","fProtos","fEnd2End"].forEach(id => {
-    const el = document.getElementById(id);
-    if (el.tagName === "SELECT") el.selectedIndex = 0;
-    else el.value = "";
-  });
+function openAddForm(){
+  editingKey=null;
+  document.getElementById("formTitle").textContent="Add entry";
+  document.getElementById("deleteBtn").style.display="none";
+  document.getElementById("fYear").value=activeYear;
+  document.getElementById("fIsProj").checked=activeMode==="proj";
+  ["fIncRate","fIncidents","fHomes","fSecuritas","fProtos","fEnd2End","fProjection"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("fMonth").selectedIndex=0;
   document.getElementById("formOverlay").classList.add("open");
 }
 
-function openEditForm(key) {
-  const entry = data.find(d => getKey(d.year, d.month) === key);
-  if (!entry) return;
-  editingKey = key;
-  document.getElementById("formTitle").textContent = "Edit entry";
-  document.getElementById("deleteBtn").style.display = "";
-  document.getElementById("fYear").value = entry.year;
-  document.getElementById("fMonth").value = entry.month;
-  document.getElementById("fIncRate").value = entry.incRate || "";
-  document.getElementById("fIncidents").value = entry.incidents || "";
-  document.getElementById("fHomes").value = entry.homes || "";
-  document.getElementById("fSecuritas").value = entry.securitas || "";
-  document.getElementById("fProtos").value = entry.protos || "";
-  document.getElementById("fEnd2End").value = entry.end2end || "";
+function openEditForm(key){
+  const [yr,mn,pt]=key.split("_");
+  const isProj=pt==="proj";
+  const entry=data.find(d=>d.year===parseInt(yr)&&d.month===mn&&!!d.isProj===isProj);
+  if(!entry)return;
+  editingKey=key;
+  document.getElementById("formTitle").textContent="Edit entry";
+  document.getElementById("deleteBtn").style.display="";
+  document.getElementById("fYear").value=entry.year;
+  document.getElementById("fMonth").value=entry.month;
+  document.getElementById("fIncRate").value=entry.incRate||"";
+  document.getElementById("fIncidents").value=entry.incidents||"";
+  document.getElementById("fHomes").value=entry.homes||"";
+  document.getElementById("fSecuritas").value=entry.securitas||"";
+  document.getElementById("fProtos").value=entry.protos||"";
+  document.getElementById("fEnd2End").value=entry.end2end||"";
+  document.getElementById("fProjection").value=entry.projection||"";
+  document.getElementById("fIsProj").checked=!!entry.isProj;
   document.getElementById("formOverlay").classList.add("open");
 }
 
-function saveEntry() {
-  const year = parseInt(document.getElementById("fYear").value);
-  const month = document.getElementById("fMonth").value;
-  const entry = {
-    year, month,
-    incRate: parseFloat(document.getElementById("fIncRate").value) || 0,
-    incidents: parseInt(document.getElementById("fIncidents").value) || 0,
-    homes: parseInt(document.getElementById("fHomes").value) || 0,
-    securitas: parseFloat(document.getElementById("fSecuritas").value) || 0,
-    protos: parseFloat(document.getElementById("fProtos").value) || 0,
-    end2end: parseFloat(document.getElementById("fEnd2End").value) || 0,
+function saveEntry(){
+  const year=parseInt(document.getElementById("fYear").value);
+  const month=document.getElementById("fMonth").value;
+  const isProj=document.getElementById("fIsProj").checked;
+  const entry={year,month,isProj,
+    incRate:parseFloat(document.getElementById("fIncRate").value)||0,
+    incidents:parseInt(document.getElementById("fIncidents").value)||0,
+    homes:parseInt(document.getElementById("fHomes").value)||0,
+    securitas:parseFloat(document.getElementById("fSecuritas").value)||0,
+    protos:parseFloat(document.getElementById("fProtos").value)||0,
+    end2end:parseFloat(document.getElementById("fEnd2End").value)||0,
+    projection:parseFloat(document.getElementById("fProjection").value)||0,
   };
-  const idx = data.findIndex(d => d.year === year && d.month === month);
-  if (idx >= 0) data[idx] = entry; else data.push(entry);
-  saveData();
-  activeYear = year;
-  closeModal();
-  renderAll();
+  const idx=data.findIndex(d=>d.year===year&&d.month===month&&!!d.isProj===isProj);
+  if(idx>=0)data[idx]=entry;else data.push(entry);
+  saveData();activeYear=year;activeMode=isProj?"proj":"actual";
+  closeModal();renderAll();
 }
 
-function deleteEntry() {
-  if (!editingKey) return;
-  if (!confirm("Delete this entry?")) return;
-  data = data.filter(d => getKey(d.year, d.month) !== editingKey);
-  saveData();
-  closeModal();
-  renderAll();
+function deleteEntry(){
+  if(!editingKey)return;
+  if(!confirm("Delete this entry?"))return;
+  const[yr,mn,pt]=editingKey.split("_");
+  const isProj=pt==="proj";
+  data=data.filter(d=>!(d.year===parseInt(yr)&&d.month===mn&&!!d.isProj===isProj));
+  saveData();closeModal();renderAll();
 }
 
-function closeModal() { document.getElementById("formOverlay").classList.remove("open"); }
-
-function exportData() {
-  const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "security_spend_data.json";
-  a.click();
+function closeModal(){document.getElementById("formOverlay").classList.remove("open");}
+function exportData(){const b=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="security_spend_data.json";a.click();}
+function openImport(){document.getElementById("importText").value="";document.getElementById("importOverlay").classList.add("open");}
+function closeImport(){document.getElementById("importOverlay").classList.remove("open");}
+function doImport(){
+  try{
+    const imp=JSON.parse(document.getElementById("importText").value);
+    if(!Array.isArray(imp))throw new Error("Expected array");
+    imp.forEach(e=>{const idx=data.findIndex(d=>d.year===e.year&&d.month===e.month&&!!d.isProj===!!e.isProj);if(idx>=0)data[idx]=e;else data.push(e);});
+    saveData();closeImport();renderAll();alert(`Imported ${imp.length} entries.`);
+  }catch(e){alert("Invalid JSON: "+e.message);}
 }
 
-function openImport() { document.getElementById("importText").value = ""; document.getElementById("importOverlay").classList.add("open"); }
-function closeImport() { document.getElementById("importOverlay").classList.remove("open"); }
+document.getElementById("formOverlay").addEventListener("click",e=>{if(e.target===e.currentTarget)closeModal();});
+document.getElementById("importOverlay").addEventListener("click",e=>{if(e.target===e.currentTarget)closeImport();});
 
-function doImport() {
-  try {
-    const imported = JSON.parse(document.getElementById("importText").value);
-    if (!Array.isArray(imported)) throw new Error("Expected array");
-    imported.forEach(entry => {
-      const idx = data.findIndex(d => d.year === entry.year && d.month === entry.month);
-      if (idx >= 0) data[idx] = entry; else data.push(entry);
-    });
-    saveData();
-    closeImport();
-    renderAll();
-    alert(`Imported ${imported.length} entries.`);
-  } catch(e) { alert("Invalid JSON: " + e.message); }
-}
-
-document.getElementById("formOverlay").addEventListener("click", e => { if (e.target === e.currentTarget) closeModal(); });
-document.getElementById("importOverlay").addEventListener("click", e => { if (e.target === e.currentTarget) closeImport(); });
-
-loadData();
-renderAll();
+loadData();renderAll();
 </script>
 </body>
 </html>
