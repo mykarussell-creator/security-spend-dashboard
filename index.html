@@ -76,6 +76,7 @@
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
     <button class="btn" onclick="openImport()">Import JSON</button>
     <button class="btn" onclick="exportData()">Export</button>
+    <button class="btn danger" onclick="resetData()">Reset data</button>
     <button class="btn primary" onclick="openAddForm()">+ Add entry</button>
   </div>
 </header>
@@ -460,6 +461,16 @@ function deleteEntry(){
 }
 
 function closeModal(){document.getElementById("formOverlay").classList.remove("open");}
+function resetData(){
+  if(!confirm("Reset all data to the original Google Sheets values? Any manually added entries will be lost."))return;
+  localStorage.removeItem("secSpendData2");
+  localStorage.removeItem("secSpendVersion");
+  data=[...SEED];
+  saveData();
+  localStorage.setItem("secSpendVersion",String(DATA_VERSION));
+  renderAll();
+  alert("Data reset to original values.");
+}
 function exportData(){const b=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="security_spend_data.json";a.click();}
 function openImport(){document.getElementById("importText").value="";document.getElementById("importOverlay").classList.add("open");}
 function closeImport(){document.getElementById("importOverlay").classList.remove("open");}
